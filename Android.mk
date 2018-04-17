@@ -67,7 +67,7 @@ LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE := liboptee_cryptoki
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/public
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/libsks/include
 
 include $(BUILD_SHARED_LIBRARY)
 
