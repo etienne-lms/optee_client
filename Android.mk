@@ -45,7 +45,7 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/public
 
 include $(BUILD_SHARED_LIBRARY)
 
-# Build libsks, i.e. liboptee_cryptoki.so
+# Build libsks.so
 include $(CLEAR_VARS)
 
 LOCAL_CFLAGS += $(optee_CFLAGS)
@@ -64,7 +64,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/public \
 
 LOCAL_SHARED_LIBRARIES := libteec
 LOCAL_PRELINK_MODULE := false
-LOCAL_MODULE := liboptee_cryptoki
+LOCAL_MODULE := libsks
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/libsks/include
