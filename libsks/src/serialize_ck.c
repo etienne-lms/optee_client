@@ -455,6 +455,104 @@ out:
 	return rv;
 }
 
+CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
+			       CK_ATTRIBUTE_PTR out);
+
+CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
+			       CK_ATTRIBUTE_PTR out) {
+	sks2ck_attribute_type(&(out->type), in->id);
+	out->ulValueLen = in->size;
+	CK_ULONG ck_ulong;
+	uint32_t sks_data32 = 0;
+
+	if (!out->pValue) return CKR_OK;
+
+	if (ck_attr_is_ulong(out->type)) {
+		if (out->ulValueLen != sizeof(CK_ULONG))
+			return CKR_ATTRIBUTE_TYPE_INVALID;
+
+		memcpy(&sks_data32, in->data, sizeof(CK_ULONG));
+	}
+
+	switch (out->type) {
+	case CKA_CLASS:
+		sks2ck_object_class(&ck_ulong, sks_data32);
+		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
+		break;
+
+	case CKA_KEY_TYPE:
+		sks2ck_key_type(&ck_ulong, sks_data32);
+		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
+		break;
+/* TODO this function was based on serialize_ck_attribute,
+ * I haven't implemented these cases here yet...
+	case CKA_WRAP_TEMPLATE:
+	case CKA_UNWRAP_TEMPLATE:
+		return serialize_indirect_attribute(obj, attr);
+
+	case CKA_ALLOWED_MECHANISMS:
+		n = attr->ulValueLen / sizeof(CK_ULONG);
+		sks_size = n * sizeof(uint32_t);
+		sks_pdata = malloc(sks_size);
+		if (!sks_pdata)
+			return CKR_HOST_MEMORY;
+
+		sks_pdata_alloced = 1;
+
+		for (m = 0; m < n; m++) {
+			CK_MECHANISM_TYPE *type = attr->pValue;
+
+			sks_data32 = ck2sks_mechanism_type(type[m]);
+			if (sks_data32 == SKS_UNDEFINED_ID) {
+				free(sks_pdata);
+				return CKR_MECHANISM_INVALID;
+			}
+
+			((uint32_t *)sks_pdata)[m] = sks_data32;
+		}
+		break;
+*/
+
+	/* Attributes which data value do not need conversion (aside ulong) */
+	default:
+		memcpy(out->pValue, in->data, out->ulValueLen);
+		break;
+	}
+
+	return CKR_OK;
+}
+
+CK_RV deserialize_ck_attributes(void *in, CK_ATTRIBUTE_PTR attributes,
+					  CK_ULONG count) {
+	CK_ATTRIBUTE_PTR cur_attr = attributes;
+	CK_ULONG n = count;
+	CK_RV rv = CKR_OK;
+	char *curr_head = in; 
+	curr_head += sizeof(struct sks_object_head);
+	size_t len;
+
+#ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
+	goto out;
+#endif
+
+	for (; n; n--, cur_attr++, curr_head += len) {
+		struct sks_attribute_head *cli_ref =
+			(struct sks_attribute_head *)(void *)curr_head;
+		len = sizeof(*cli_ref);
+		/* can't trust size becuase it was set to reflect 
+		 * required buffer
+		 */
+		if (cur_attr->pValue) len += cli_ref->size;
+
+		rv = deserialize_ck_attribute(cli_ref, cur_attr);
+		if (rv)
+			goto out;
+	}
+
+out:
+	return rv;
+}
+
 /*
  * Serialization of CK mechanism parameters
  *

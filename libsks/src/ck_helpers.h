@@ -92,4 +92,16 @@ int ck_attr2boolprop_shift(CK_ULONG attr);
 int sks_object_has_boolprop(uint32_t class);
 int sks_class_has_type(uint32_t class);
 
+/*
+ * Try to guess key type if mechanism is key generation.
+ * This may be needed because some tools (e.g.: pkcs11-tool)
+ * don't seem specify some fields when those can be assumed 
+ * from the mechanism type.
+ * Allocates memory for a copy of the attributes, since it could
+ * become longer, that has to be freed by the caller.
+ */
+void ck_guess_key_type(CK_MECHANISM_PTR mecha,
+		       CK_ATTRIBUTE_PTR attrs, CK_ULONG_PTR count,
+		       CK_ATTRIBUTE_PTR *attrs_new_p);
+
 #endif /*__HELPERS_CK_H*/

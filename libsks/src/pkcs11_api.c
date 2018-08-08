@@ -11,6 +11,7 @@
 #include "local_utils.h"
 #include "pkcs11_processing.h"
 #include "pkcs11_token.h"
+#include "ck_helpers.h"
 
 static int lib_inited;
 
@@ -38,16 +39,16 @@ static const CK_FUNCTION_LIST libsks_function_list = {
 	REGISTER_CK_FUNCTION(C_CloseSession),
 	REGISTER_CK_FUNCTION(C_CloseAllSessions),
 	REGISTER_CK_FUNCTION(C_GetSessionInfo),
-	DO_NOT_REGISTER_CK_FUNCTION(C_GetOperationState),
-	DO_NOT_REGISTER_CK_FUNCTION(C_SetOperationState),
+	REGISTER_CK_FUNCTION(C_GetOperationState),
+	REGISTER_CK_FUNCTION(C_SetOperationState),
 	REGISTER_CK_FUNCTION(C_Login),
 	REGISTER_CK_FUNCTION(C_Logout),
 	REGISTER_CK_FUNCTION(C_CreateObject),
-	DO_NOT_REGISTER_CK_FUNCTION(C_CopyObject),
+	REGISTER_CK_FUNCTION(C_CopyObject),
 	REGISTER_CK_FUNCTION(C_DestroyObject),
-	DO_NOT_REGISTER_CK_FUNCTION(C_GetObjectSize),
-	DO_NOT_REGISTER_CK_FUNCTION(C_GetAttributeValue),
-	DO_NOT_REGISTER_CK_FUNCTION(C_SetAttributeValue),
+	REGISTER_CK_FUNCTION(C_GetObjectSize),
+	REGISTER_CK_FUNCTION(C_GetAttributeValue),
+	REGISTER_CK_FUNCTION(C_SetAttributeValue),
 	REGISTER_CK_FUNCTION(C_FindObjectsInit),
 	REGISTER_CK_FUNCTION(C_FindObjects),
 	REGISTER_CK_FUNCTION(C_FindObjectsFinal),
@@ -59,37 +60,37 @@ static const CK_FUNCTION_LIST libsks_function_list = {
 	REGISTER_CK_FUNCTION(C_Decrypt),
 	REGISTER_CK_FUNCTION(C_DecryptUpdate),
 	REGISTER_CK_FUNCTION(C_DecryptFinal),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DigestInit),
-	DO_NOT_REGISTER_CK_FUNCTION(C_Digest),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DigestUpdate),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DigestKey),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DigestFinal),
+	REGISTER_CK_FUNCTION(C_DigestInit),
+	REGISTER_CK_FUNCTION(C_Digest),
+	REGISTER_CK_FUNCTION(C_DigestUpdate),
+	REGISTER_CK_FUNCTION(C_DigestKey),
+	REGISTER_CK_FUNCTION(C_DigestFinal),
 	REGISTER_CK_FUNCTION(C_SignInit),
 	REGISTER_CK_FUNCTION(C_Sign),
 	REGISTER_CK_FUNCTION(C_SignUpdate),
 	REGISTER_CK_FUNCTION(C_SignFinal),
-	DO_NOT_REGISTER_CK_FUNCTION(C_SignRecoverInit),
-	DO_NOT_REGISTER_CK_FUNCTION(C_SignRecover),
+	REGISTER_CK_FUNCTION(C_SignRecoverInit),
+	REGISTER_CK_FUNCTION(C_SignRecover),
 	REGISTER_CK_FUNCTION(C_VerifyInit),
 	REGISTER_CK_FUNCTION(C_Verify),
 	REGISTER_CK_FUNCTION(C_VerifyUpdate),
 	REGISTER_CK_FUNCTION(C_VerifyFinal),
-	DO_NOT_REGISTER_CK_FUNCTION(C_VerifyRecoverInit),
-	DO_NOT_REGISTER_CK_FUNCTION(C_VerifyRecover),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DigestEncryptUpdate),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DecryptDigestUpdate),
-	DO_NOT_REGISTER_CK_FUNCTION(C_SignEncryptUpdate),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DecryptVerifyUpdate),
+	REGISTER_CK_FUNCTION(C_VerifyRecoverInit),
+	REGISTER_CK_FUNCTION(C_VerifyRecover),
+	REGISTER_CK_FUNCTION(C_DigestEncryptUpdate),
+	REGISTER_CK_FUNCTION(C_DecryptDigestUpdate),
+	REGISTER_CK_FUNCTION(C_SignEncryptUpdate),
+	REGISTER_CK_FUNCTION(C_DecryptVerifyUpdate),
 	REGISTER_CK_FUNCTION(C_GenerateKey),
 	REGISTER_CK_FUNCTION(C_GenerateKeyPair),
-	DO_NOT_REGISTER_CK_FUNCTION(C_WrapKey),
-	DO_NOT_REGISTER_CK_FUNCTION(C_UnwrapKey),
-	DO_NOT_REGISTER_CK_FUNCTION(C_DeriveKey),
-	DO_NOT_REGISTER_CK_FUNCTION(C_SeedRandom),
-	DO_NOT_REGISTER_CK_FUNCTION(C_GenerateRandom),
-	DO_NOT_REGISTER_CK_FUNCTION(C_GetFunctionStatus),
-	DO_NOT_REGISTER_CK_FUNCTION(C_CancelFunction),
-	DO_NOT_REGISTER_CK_FUNCTION(C_WaitForSlotEvent),
+	REGISTER_CK_FUNCTION(C_WrapKey),
+	REGISTER_CK_FUNCTION(C_UnwrapKey),
+	REGISTER_CK_FUNCTION(C_DeriveKey),
+	REGISTER_CK_FUNCTION(C_SeedRandom),
+	REGISTER_CK_FUNCTION(C_GenerateRandom),
+	REGISTER_CK_FUNCTION(C_GetFunctionStatus),
+	REGISTER_CK_FUNCTION(C_CancelFunction),
+	REGISTER_CK_FUNCTION(C_WaitForSlotEvent),
 };
 
 /*
@@ -745,15 +746,35 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE session,
 			  CK_ATTRIBUTE_PTR attribs,
 			  CK_ULONG count)
 {
-	(void)session;
-	(void)obj;
-	(void)attribs;
-	(void)count;
+	CK_RV rv;
 
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_get_attribute_value(session, obj, attribs, count);
+
+	switch (rv) {
+	case CKR_ARGUMENTS_BAD:
+	case CKR_ATTRIBUTE_TYPE_INVALID:
+	case CKR_ATTRIBUTE_VALUE_INVALID:
+	case CKR_CRYPTOKI_NOT_INITIALIZED:
+	case CKR_DEVICE_ERROR:
+	case CKR_DEVICE_MEMORY:
+	case CKR_DEVICE_REMOVED:
+	case CKR_FUNCTION_FAILED:
+	case CKR_GENERAL_ERROR:
+	case CKR_HOST_MEMORY:
+	case CKR_OK:
+	case CKR_OPERATION_ACTIVE:
+	case CKR_PIN_EXPIRED:
+	case CKR_SESSION_CLOSED:
+	case CKR_SESSION_HANDLE_INVALID:
+		break;
+	default:
+		assert(!rv);
+	}
+
+	return rv;
 }
 
 CK_RV C_SetAttributeValue(CK_SESSION_HANDLE session,
@@ -1742,12 +1763,22 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE session,
 			CK_OBJECT_HANDLE_PTR priv_key)
 {
 	CK_RV rv;
+	CK_ATTRIBUTE_PTR pub_attribs_n=0;
+	CK_ATTRIBUTE_PTR priv_attribs_n=0;
 
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
+	
+	ck_guess_key_type(mechanism, pub_attribs, &pub_count, &pub_attribs_n);	
+	ck_guess_key_type(mechanism, priv_attribs, &priv_count, &priv_attribs_n);	
+	if (!pub_attribs_n || !priv_attribs_n)
+		return CKR_TEMPLATE_INCOMPLETE;
 
-	rv = ck_generate_key_pair(session, mechanism, pub_attribs, pub_count,
-				  priv_attribs, priv_count, pub_key, priv_key);
+	rv = ck_generate_key_pair(session, mechanism, pub_attribs_n, pub_count,
+				  priv_attribs_n, priv_count, pub_key, priv_key);
+
+	free(pub_attribs_n);
+	free(priv_attribs_n);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
