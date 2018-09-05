@@ -19,10 +19,10 @@ static int lib_inited;
 #define DO_NOT_REGISTER_CK_FUNCTION(_function)	._function = NULL
 
 static const CK_FUNCTION_LIST libsks_function_list = {
-    .version = {
-        .major = 2,
-        .minor = 40,
-    },
+	.version = {
+		.major = 2,
+		.minor = 40,
+	},
 	REGISTER_CK_FUNCTION(C_Initialize),
 	REGISTER_CK_FUNCTION(C_Finalize),
 	REGISTER_CK_FUNCTION(C_GetInfo),
@@ -39,16 +39,16 @@ static const CK_FUNCTION_LIST libsks_function_list = {
 	REGISTER_CK_FUNCTION(C_CloseSession),
 	REGISTER_CK_FUNCTION(C_CloseAllSessions),
 	REGISTER_CK_FUNCTION(C_GetSessionInfo),
-	REGISTER_CK_FUNCTION(C_GetOperationState),
-	REGISTER_CK_FUNCTION(C_SetOperationState),
+	DO_NOT_REGISTER_CK_FUNCTION(C_GetOperationState),
+	DO_NOT_REGISTER_CK_FUNCTION(C_SetOperationState),
 	REGISTER_CK_FUNCTION(C_Login),
 	REGISTER_CK_FUNCTION(C_Logout),
 	REGISTER_CK_FUNCTION(C_CreateObject),
-	REGISTER_CK_FUNCTION(C_CopyObject),
+	DO_NOT_REGISTER_CK_FUNCTION(C_CopyObject),
 	REGISTER_CK_FUNCTION(C_DestroyObject),
-	REGISTER_CK_FUNCTION(C_GetObjectSize),
+	DO_NOT_REGISTER_CK_FUNCTION(C_GetObjectSize),
 	REGISTER_CK_FUNCTION(C_GetAttributeValue),
-	REGISTER_CK_FUNCTION(C_SetAttributeValue),
+	DO_NOT_REGISTER_CK_FUNCTION(C_SetAttributeValue),
 	REGISTER_CK_FUNCTION(C_FindObjectsInit),
 	REGISTER_CK_FUNCTION(C_FindObjects),
 	REGISTER_CK_FUNCTION(C_FindObjectsFinal),
@@ -60,37 +60,37 @@ static const CK_FUNCTION_LIST libsks_function_list = {
 	REGISTER_CK_FUNCTION(C_Decrypt),
 	REGISTER_CK_FUNCTION(C_DecryptUpdate),
 	REGISTER_CK_FUNCTION(C_DecryptFinal),
-	REGISTER_CK_FUNCTION(C_DigestInit),
-	REGISTER_CK_FUNCTION(C_Digest),
-	REGISTER_CK_FUNCTION(C_DigestUpdate),
-	REGISTER_CK_FUNCTION(C_DigestKey),
-	REGISTER_CK_FUNCTION(C_DigestFinal),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DigestInit),
+	DO_NOT_REGISTER_CK_FUNCTION(C_Digest),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DigestUpdate),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DigestKey),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DigestFinal),
 	REGISTER_CK_FUNCTION(C_SignInit),
 	REGISTER_CK_FUNCTION(C_Sign),
 	REGISTER_CK_FUNCTION(C_SignUpdate),
 	REGISTER_CK_FUNCTION(C_SignFinal),
-	REGISTER_CK_FUNCTION(C_SignRecoverInit),
-	REGISTER_CK_FUNCTION(C_SignRecover),
+	DO_NOT_REGISTER_CK_FUNCTION(C_SignRecoverInit),
+	DO_NOT_REGISTER_CK_FUNCTION(C_SignRecover),
 	REGISTER_CK_FUNCTION(C_VerifyInit),
 	REGISTER_CK_FUNCTION(C_Verify),
 	REGISTER_CK_FUNCTION(C_VerifyUpdate),
 	REGISTER_CK_FUNCTION(C_VerifyFinal),
-	REGISTER_CK_FUNCTION(C_VerifyRecoverInit),
-	REGISTER_CK_FUNCTION(C_VerifyRecover),
-	REGISTER_CK_FUNCTION(C_DigestEncryptUpdate),
-	REGISTER_CK_FUNCTION(C_DecryptDigestUpdate),
-	REGISTER_CK_FUNCTION(C_SignEncryptUpdate),
-	REGISTER_CK_FUNCTION(C_DecryptVerifyUpdate),
+	DO_NOT_REGISTER_CK_FUNCTION(C_VerifyRecoverInit),
+	DO_NOT_REGISTER_CK_FUNCTION(C_VerifyRecover),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DigestEncryptUpdate),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DecryptDigestUpdate),
+	DO_NOT_REGISTER_CK_FUNCTION(C_SignEncryptUpdate),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DecryptVerifyUpdate),
 	REGISTER_CK_FUNCTION(C_GenerateKey),
 	REGISTER_CK_FUNCTION(C_GenerateKeyPair),
-	REGISTER_CK_FUNCTION(C_WrapKey),
-	REGISTER_CK_FUNCTION(C_UnwrapKey),
-	REGISTER_CK_FUNCTION(C_DeriveKey),
-	REGISTER_CK_FUNCTION(C_SeedRandom),
-	REGISTER_CK_FUNCTION(C_GenerateRandom),
-	REGISTER_CK_FUNCTION(C_GetFunctionStatus),
-	REGISTER_CK_FUNCTION(C_CancelFunction),
-	REGISTER_CK_FUNCTION(C_WaitForSlotEvent),
+	DO_NOT_REGISTER_CK_FUNCTION(C_WrapKey),
+	DO_NOT_REGISTER_CK_FUNCTION(C_UnwrapKey),
+	DO_NOT_REGISTER_CK_FUNCTION(C_DeriveKey),
+	DO_NOT_REGISTER_CK_FUNCTION(C_SeedRandom),
+	DO_NOT_REGISTER_CK_FUNCTION(C_GenerateRandom),
+	DO_NOT_REGISTER_CK_FUNCTION(C_GetFunctionStatus),
+	DO_NOT_REGISTER_CK_FUNCTION(C_CancelFunction),
+	DO_NOT_REGISTER_CK_FUNCTION(C_WaitForSlotEvent),
 };
 
 /*
@@ -1763,22 +1763,25 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE session,
 			CK_OBJECT_HANDLE_PTR priv_key)
 {
 	CK_RV rv;
-	CK_ATTRIBUTE_PTR pub_attribs_n=0;
-	CK_ATTRIBUTE_PTR priv_attribs_n=0;
+	CK_ATTRIBUTE_PTR pub_attribs_n = 0;
+	CK_ATTRIBUTE_PTR priv_attribs_n = 0;
+	CK_KEY_TYPE_PTR ckk1 = 0;
+	CK_KEY_TYPE_PTR ckk2 = 0;
 
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 	
-	ck_guess_key_type(mechanism, pub_attribs, &pub_count, &pub_attribs_n);	
-	ck_guess_key_type(mechanism, priv_attribs, &priv_count, &priv_attribs_n);	
-	if (!pub_attribs_n || !priv_attribs_n)
-		return CKR_TEMPLATE_INCOMPLETE;
+	rv = ck_guess_key_type(mechanism, pub_attribs, &pub_count,
+			       &pub_attribs_n, &ckk1);	
+	if (rv != CKR_OK)
+		goto bail;
+	rv = ck_guess_key_type(mechanism, priv_attribs, &priv_count,
+			       &priv_attribs_n, &ckk2);	
+	if (rv != CKR_OK)
+		goto bail;
 
 	rv = ck_generate_key_pair(session, mechanism, pub_attribs_n, pub_count,
 				  priv_attribs_n, priv_count, pub_key, priv_key);
-
-	free(pub_attribs_n);
-	free(priv_attribs_n);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1811,6 +1814,16 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE session,
 	default:
 		assert(!rv);
 	}
+
+bail:
+	if (pub_attribs_n)
+		free(pub_attribs_n);
+	if (priv_attribs_n)
+		free(priv_attribs_n);
+	if (ckk1)
+		free(ckk1);
+	if (ckk2)
+		free(ckk2);
 
 	return rv;
 }

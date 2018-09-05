@@ -304,7 +304,7 @@ CK_RV ck_generate_key_pair(CK_SESSION_HANDLE session,
 		rv = CKR_HOST_MEMORY;
 		goto bail;
 	}
-	
+
 	memcpy(ctrl, &session_handle, sizeof(uint32_t));
 	memcpy(ctrl + sizeof(uint32_t),
 		smecha.buffer, smecha.size);
@@ -321,7 +321,7 @@ CK_RV ck_generate_key_pair(CK_SESSION_HANDLE session,
 		rv = CKR_GENERAL_ERROR;
 	if (rv)
 		goto bail;
-	
+
 	*pub_key = key_handle[0];
 	*priv_key = key_handle[1];
 

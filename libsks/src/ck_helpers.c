@@ -699,13 +699,16 @@ CK_RV sks2ck_type_in_class(CK_ULONG *ck, uint32_t sks, CK_ULONG class)
 	}
 }
 
-void ck_guess_key_type(CK_MECHANISM_PTR mecha,
+CK_RV ck_guess_key_type(CK_MECHANISM_PTR mecha,
 		       CK_ATTRIBUTE_PTR attrs, CK_ULONG_PTR count,
-		       CK_ATTRIBUTE_PTR *attrs_new_p)
+		       CK_ATTRIBUTE_PTR *attrs_new_p,
+		       CK_KEY_TYPE_PTR *ckk_rsa)
 {
 	size_t n;
 	CK_ATTRIBUTE_PTR attrs_new;
-	int key_type_present=0;
+	int key_type_present = 0;
+	*ckk_rsa = NULL;
+
 	for (n = 0; n < *count; n++) {
 		if (attrs[n].type == CKA_KEY_TYPE) {
 			key_type_present = 1;
@@ -715,27 +718,24 @@ void ck_guess_key_type(CK_MECHANISM_PTR mecha,
 
 	*attrs_new_p = malloc((*count+!key_type_present)*sizeof(CK_ATTRIBUTE));
 	attrs_new = *attrs_new_p;
-	for (n = 0; n < *count; n++) {
-		attrs_new[n].type = attrs[n].type;
-		attrs_new[n].pValue = attrs[n].pValue;
-		attrs_new[n].ulValueLen = attrs[n].ulValueLen;
-	}
+	memcpy(attrs_new, attrs, (*count)*sizeof(CK_ATTRIBUTE));
 
-	/* key type already present or we can't guess */
-	if (key_type_present) return;
+	if (key_type_present) return CKR_OK;
 
 	switch (mecha->mechanism) {
 	case CKM_RSA_PKCS_KEY_PAIR_GEN:
 		attrs_new[*count].type = CKA_KEY_TYPE;
-		static CK_KEY_TYPE temp_ckk_rsa = CKK_RSA;
-		attrs_new[*count].pValue = &temp_ckk_rsa;
+		*ckk_rsa = malloc(sizeof(CK_KEY_TYPE));
+		**ckk_rsa = CKK_RSA;
+		attrs_new[*count].pValue = *ckk_rsa;
 		attrs_new[*count].ulValueLen = sizeof(CK_KEY_TYPE);
 		*count = *count+1;
 		break;
 	default:
-		/* can't guess key type */
 		free(attrs_new);
 		*attrs_new_p = NULL;
-		return;
+		return CKR_TEMPLATE_INCOMPLETE;
 	}
+
+	return CKR_OK;
 }

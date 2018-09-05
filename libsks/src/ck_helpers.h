@@ -100,8 +100,9 @@ int sks_class_has_type(uint32_t class);
  * Allocates memory for a copy of the attributes, since it could
  * become longer, that has to be freed by the caller.
  */
-void ck_guess_key_type(CK_MECHANISM_PTR mecha,
+CK_RV ck_guess_key_type(CK_MECHANISM_PTR mecha,
 		       CK_ATTRIBUTE_PTR attrs, CK_ULONG_PTR count,
-		       CK_ATTRIBUTE_PTR *attrs_new_p);
+		       CK_ATTRIBUTE_PTR *attrs_new_p,
+		       CK_KEY_TYPE_PTR *ckk_rsa);
 
 #endif /*__HELPERS_CK_H*/

@@ -487,11 +487,14 @@ CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
 			       CK_ATTRIBUTE_PTR out);
 
 CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
-			       CK_ATTRIBUTE_PTR out) {
+			       CK_ATTRIBUTE_PTR out)
+{
 	CK_ULONG ck_ulong;
 	uint32_t sks_data32 = 0;
 	size_t n;
-	sks2ck_attribute_type(&(out->type), in->id);
+
+	if (sks2ck_attribute_type(&(out->type), in->id) != CKR_OK)
+		return CKR_GENERAL_ERROR;
 	if (out->ulValueLen < in->size) {
 		out->ulValueLen = in->size;
 		return CKR_OK;
@@ -525,7 +528,6 @@ CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
 	case CKA_ALLOWED_MECHANISMS:
 		n = out->ulValueLen / sizeof(CK_ULONG);
 		sks2ck_mechanism_type_list(out->pValue, in->data, n);
-
 		break;
 
 	/* Attributes which data value do not need conversion (aside ulong) */
@@ -540,21 +542,22 @@ CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
 CK_RV deserialize_ck_attributes(void *in, CK_ATTRIBUTE_PTR attributes,
 					  CK_ULONG count) {
 	CK_ATTRIBUTE_PTR cur_attr = attributes;
-	CK_ULONG n = count;
+	CK_ULONG n;
 	CK_RV rv = CKR_OK;
 	char *curr_head = in; 
 	curr_head += sizeof(struct sks_object_head);
 	size_t len;
 
 #ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
-	goto out;
+#error Not supported.
 #endif
 
-	for (; n; n--, cur_attr++, curr_head += len) {
+	for (n = count; n; n--, cur_attr++, curr_head += len) {
 		struct sks_attribute_head *cli_ref =
 			(struct sks_attribute_head *)(void *)curr_head;
 		len = sizeof(*cli_ref);
-		/* can't trust size becuase it was set to reflect 
+		/*
+		 * can't trust size becuase it was set to reflect 
 		 * required buffer
 		 */
 		if (cur_attr->pValue) len += cli_ref->size;
