@@ -483,10 +483,7 @@ out:
 	return rv;
 }
 
-CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
-			       CK_ATTRIBUTE_PTR out);
-
-CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
+static CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
 			       CK_ATTRIBUTE_PTR out)
 {
 	CK_ULONG ck_ulong;
