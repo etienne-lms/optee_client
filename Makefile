@@ -39,7 +39,7 @@ build-tee-supplicant: build-libteec
 
 build: build-libteec build-tee-supplicant build-libsks
 
-build-libsks:
+build-libsks: build-libteec
 	@echo "Building libsks.so"
 	@$(MAKE) --directory=libsks --no-print-directory --no-builtin-variables
 
