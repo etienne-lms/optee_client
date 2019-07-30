@@ -170,9 +170,16 @@ static CK_RV deserialize_indirect_attribute(struct sks_attribute_head *obj,
 
 static int ck_attr_is_ulong(CK_ATTRIBUTE_TYPE attribute_id)
 {
-	return (ck_attr_is_class(attribute_id) ||
-		ck_attr_is_type(attribute_id) ||
-		attribute_id == CKA_VALUE_LEN);
+	if (ck_attr_is_class(attribute_id) || ck_attr_is_type(attribute_id))
+		return true;
+
+	switch (attribute_id) {
+	case CKA_VALUE_LEN:
+	case CKA_MODULUS_BITS:
+		return true;
+	default:
+		return false;
+	}
 }
 
 static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
