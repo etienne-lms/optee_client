@@ -3,14 +3,15 @@ project (tee-supplicant C)
 ################################################################################
 # Configuration flags always included
 ################################################################################
-option (CFG_TA_TEST_PATH "Enable tee-supplicant to load from test/debug path" ON)
+option (CFG_TA_TEST_PATH "Enable tee-supplicant to load from test/debug path" OFF)
 option (RPMB_EMU "Enable tee-supplicant to emulate RPMB" ON)
-option (CFG_TA_GPROF_SUPPORT "Enabled tee-supplicant profiling support" OFF)
+option (CFG_TA_GPROF_SUPPORT "Enable tee-supplicant support for TAs instrumented with gprof" OFF)
+option (CFG_TA_FTRACE_SUPPORT "Enable tee-supplicant support for TAs instrumented with ftrace" OFF)
 
 set (CFG_TEE_SUPP_LOG_LEVEL "1" CACHE STRING "tee-supplicant log level")
 # FIXME: Question is, is this really needed? Should just use defaults from # GNUInstallDirs?
 set (CFG_TEE_CLIENT_LOAD_PATH "/lib" CACHE STRING "Location of libteec.so")
-set (CFG_TEE_FS_PARENT_PATH "/data" CACHE STRING "Location of TEE filesystem (secure storage)")
+set (CFG_TEE_FS_PARENT_PATH "/data/tee" CACHE STRING "Location of TEE filesystem (secure storage)")
 # FIXME: Why do we have if defined(CFG_GP_SOCKETS) && CFG_GP_SOCKETS == 1 in the c-file?
 set (CFG_GP_SOCKETS "1" CACHE STRING "Enable GlobalPlatform Socket API support")
 
@@ -31,8 +32,8 @@ if (CFG_GP_SOCKETS)
 	set (SRC ${SRC} src/tee_socket.c)
 endif()
 
-if (CFG_TA_GPROF_SUPPORT)
-	set (SRC ${SRC} src/gprof.c)
+if (CFG_TA_GPROF_SUPPORT OR CFG_TA_FTRACE_SUPPORT)
+	set (SRC ${SRC} src/prof.c)
 endif()
 
 ################################################################################
@@ -63,7 +64,7 @@ if (CFG_TA_TEST_PATH)
 		PRIVATE -DCFG_TA_TEST_PATH=${CFG_TA_TEST_PATH})
 endif()
 
-if (CFG_TA_TEST_PATH)
+if (RPMB_EMU)
 	target_compile_definitions (${PROJECT_NAME}
 		PRIVATE -DRPMB_EMU=1)
 endif()
@@ -71,6 +72,11 @@ endif()
 if (CFG_TA_GPROF_SUPPORT)
 	target_compile_definitions (${PROJECT_NAME}
 		PRIVATE -DCFG_TA_GPROF_SUPPORT)
+endif()
+
+if (CFG_TA_FTRACE_SUPPORT)
+	target_compile_definitions (${PROJECT_NAME}
+		PRIVATE -DCFG_TA_FTRACE_SUPPORT)
 endif()
 
 ################################################################################
@@ -85,4 +91,4 @@ target_link_libraries (${PROJECT_NAME}
 ################################################################################
 # Install targets
 ################################################################################
-install (TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_SBINDIR})
+install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_SBINDIR})
