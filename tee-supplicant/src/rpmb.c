@@ -93,6 +93,7 @@ struct rpmb_data_frame {
 #define RPMB_RESULT_GENERAL_FAILURE		0x01
 #define RPMB_RESULT_AUTH_FAILURE		0x02
 #define RPMB_RESULT_ADDRESS_FAILURE		0x04
+#define RPMB_RESULT_AUTH_KEY_NOT_PROGRAMMED	0x07
 	uint16_t msg_type;
 #define RPMB_MSG_TYPE_REQ_AUTH_KEY_PROGRAM		0x0001
 #define RPMB_MSG_TYPE_REQ_WRITE_COUNTER_VAL_READ	0x0002
@@ -152,9 +153,10 @@ static int mmc_rpmb_fd(uint16_t dev_id)
 	static int fd = -1;
 	char path[PATH_MAX] = { 0 };
 
+	DMSG("dev_id = %u", dev_id);
 	if (fd < 0) {
 #ifdef __ANDROID__
-		snprintf(path, sizeof(path), "/dev/block/mmcblk%urpmb", dev_id);
+		snprintf(path, sizeof(path), "/dev/mmcblk%urpmb", dev_id);
 #else
 		snprintf(path, sizeof(path), "/dev/mmcblk%urpmb", dev_id);
 #endif
@@ -178,6 +180,7 @@ static int mmc_fd(uint16_t dev_id)
 	int fd = 0;
 	char path[PATH_MAX] = { 0 };
 
+	DMSG("dev_id = %u", dev_id);
 #ifdef __ANDROID__
 	snprintf(path, sizeof(path), "/dev/block/mmcblk%u", dev_id);
 #else
@@ -235,7 +238,7 @@ err:
 /* Emulated rel_wr_sec_c value (reliable write size, *256 bytes) */
 #define EMU_RPMB_REL_WR_SEC_C	1
 /* Emulated rpmb_size_mult value (RPMB size, *128 kB) */
-#define EMU_RPMB_SIZE_MULT	1
+#define EMU_RPMB_SIZE_MULT	2
 
 #define EMU_RPMB_SIZE_BYTES	(EMU_RPMB_SIZE_MULT * 128 * 1024)
 
@@ -335,6 +338,11 @@ static bool is_hmac_valid(struct rpmb_emu *mem, struct rpmb_data_frame *frm,
 	return true;
 }
 
+static uint16_t gen_msb1st_result(uint8_t byte)
+{
+	return (uint16_t)byte << 8;
+}
+
 static uint16_t compute_hmac(struct rpmb_emu *mem, struct rpmb_data_frame *frm,
 			     size_t nfrm)
 {
@@ -345,7 +353,7 @@ static uint16_t compute_hmac(struct rpmb_emu *mem, struct rpmb_data_frame *frm,
 
 	if (!mem->key_set) {
 		EMSG("Cannot compute MAC (key not set)");
-		return RPMB_RESULT_GENERAL_FAILURE;
+		return gen_msb1st_result(RPMB_RESULT_AUTH_KEY_NOT_PROGRAMMED);
 	}
 
 	hmac_sha256_init(&ctx, mem->key, sizeof(mem->key));
@@ -354,7 +362,7 @@ static uint16_t compute_hmac(struct rpmb_emu *mem, struct rpmb_data_frame *frm,
 	frm--;
 	hmac_sha256_final(&ctx, frm->key_mac, 32);
 
-	return RPMB_RESULT_OK;
+	return gen_msb1st_result(RPMB_RESULT_OK);
 }
 
 static uint16_t ioctl_emu_mem_transfer(struct rpmb_emu *mem,
@@ -368,10 +376,10 @@ static uint16_t ioctl_emu_mem_transfer(struct rpmb_emu *mem,
 
 	if (start > mem->size || start + size > mem->size) {
 		EMSG("Transfer bounds exceeed emulated memory");
-		return RPMB_RESULT_ADDRESS_FAILURE;
+		return gen_msb1st_result(RPMB_RESULT_ADDRESS_FAILURE);
 	}
 	if (to_mmc && !is_hmac_valid(mem, frm, nfrm))
-		return RPMB_RESULT_AUTH_FAILURE;
+		return gen_msb1st_result(RPMB_RESULT_AUTH_FAILURE);
 
 	DMSG("Transferring %zu 256-byte data block%s %s MMC (block offset=%zu)",
 	     nfrm, (nfrm > 1) ? "s" : "", to_mmc ? "to" : "from", start / 256);
@@ -391,14 +399,14 @@ static uint16_t ioctl_emu_mem_transfer(struct rpmb_emu *mem,
 			frm[i].block_count = nfrm;
 			memcpy(frm[i].nonce, mem->nonce, 16);
 		}
-		frm[i].op_result = RPMB_RESULT_OK;
+		frm[i].op_result = gen_msb1st_result(RPMB_RESULT_OK);
 	}
 	dump_blocks(mem->last_op.address, nfrm, mem->buf + start, to_mmc);
 
 	if (!to_mmc)
 		compute_hmac(mem, frm, nfrm);
 
-	return RPMB_RESULT_OK;
+	return gen_msb1st_result(RPMB_RESULT_OK);
 }
 
 static void ioctl_emu_get_write_result(struct rpmb_emu *mem,
@@ -416,13 +424,13 @@ static uint16_t ioctl_emu_setkey(struct rpmb_emu *mem,
 {
 	if (mem->key_set) {
 		EMSG("Key already set");
-		return RPMB_RESULT_GENERAL_FAILURE;
+		return gen_msb1st_result(RPMB_RESULT_GENERAL_FAILURE);
 	}
 	dump_buffer("Setting key", frm->key_mac, 32);
 	memcpy(mem->key, frm->key_mac, 32);
 	mem->key_set = true;
 
-	return RPMB_RESULT_OK;
+	return gen_msb1st_result(RPMB_RESULT_OK);
 }
 
 static void ioctl_emu_get_keyprog_result(struct rpmb_emu *mem,
@@ -440,7 +448,6 @@ static void ioctl_emu_read_ctr(struct rpmb_emu *mem,
 	frm->msg_type = htons(RPMB_MSG_TYPE_RESP_WRITE_COUNTER_VAL_READ);
 	frm->write_counter = htonl(mem->write_counter);
 	memcpy(frm->nonce, mem->nonce, 16);
-	frm->op_result = RPMB_RESULT_OK;
 	frm->op_result = compute_hmac(mem, frm, 1);
 }
 
