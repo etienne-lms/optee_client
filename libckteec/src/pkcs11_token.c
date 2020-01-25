@@ -31,7 +31,7 @@ int sks_ck_get_info(CK_INFO_PTR info)
 	const CK_VERSION ck_version = { 2, 40 };
 	const char manuf_id[] = SKS_CRYPTOKI_SLOT_MANUFACTURER; // TODO slot?
 	const CK_FLAGS flags = 0;	/* must be zero per the PKCS#11 2.40 */
-	const char lib_description[] = "OP-TEE SKS Cryptoki library";
+	const char lib_description[] = "OP-TEE PKCS11 Cryptoki client library";
 	const CK_VERSION lib_version = { 0, 0 };
 
 	info->cryptokiVersion = ck_version;

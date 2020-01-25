@@ -923,124 +923,132 @@ struct sks_attribute_head {
  * C structures.
  *
  * Processing parameters are used as argument the C_EncryptInit and friends
- * using the struct sks_attribute_head format where field 'type' is the SKS
+ * using the struct sks_attribute_head format where field 'type' is the PKCS11
  * processing ID and field 'size' is the parameter byte size. Below is shown
  * the head structure struct sks_attribute_head fields and the trailling data
  * that are the effective parameters binary blob for the target
  * processing/mechanism.
+ * AES and generic secret generation
+ *   head:	32bit: type = PKCS11_CKM_AES_KEY_GEN
+ *			   or PKCS11_CKM_GENERIC_SECRET_KEY_GEN
+ *		32bit: size = 0
  *
  * AES ECB
- *   head:	32bit type = SKS_CKM_AES_ECB
- *		32bit params byte size = 0
+ *   head:	32bit: type = PKCS11_CKM_AES_ECB
+ *		32bit: params byte size = 0
  *
- * AES CBC, CBC_NOPAD and CTS
- *   head:	32bit type = SKS_CKM_AES_CBC
- *			  or SKS_CKM_AES_CBC_PAD
- *			  or SKS_CKM_AES_CTS
- *		32bit params byte size = 16
- *  params:	16byte IV
+ * AES CBC, CBC_PAD and CTS
+ *   head:	32bit: type = PKCS11_CKM_AES_CBC
+ *			  or PKCS11_CKM_AES_CBC_PAD
+ *			  or PKCS11_CKM_AES_CTS
+ *		32bit: params byte size = 16
+ *  params:	16byte: IV
  *
  * AES CTR, params relates to struct CK_AES_CTR_PARAMS.
- *   head:	32bit type = SKS_CKM_AES_CTR
- *		32bit params byte size = 20
- *  params:	32bit counter bit increment
- *		16byte IV
+ *   head:	32bit: type = PKCS11_CKM_AES_CTR
+ *		32bit: params byte size = 20
+ *  params:	32bit: counter bit increment
+ *		16byte: IV
  *
  * AES GCM, params relates to struct CK_AES_GCM_PARAMS.
- *   head:	32bit type = SKS_CKM_AES_GCM
- *		32bit params byte size
- *  params:	32bit IV_byte_size
+ *   head:	32bit: type = PKCS11_CKM_AES_GCM
+ *		32bit: params byte size
+ *  params:	32bit: IV_byte_size
  *		byte array: IV (IV_byte_size bytes)
- *		32bit AAD_byte_size
+ *		32bit: AAD_byte_size
  *		byte array: AAD data (AAD_byte_size bytes)
- *		32bit tag bit size
+ *		32bit: tag bit size
  *
  * AES CCM, params relates to struct CK_AES_CCM_PARAMS.
- *   head:	32bit type = SKS_CKM_AES_CCM
- *		32bit params byte size
- *  params:	32bit data_byte_size
- *		32bit nonce_byte_size
+ *   head:	32bit: type = PKCS11_CKM_AES_CCM
+ *		32bit: params byte size
+ *  params:	32bit: data_byte_size
+ *		32bit: nonce_byte_size
  *		byte array: nonce data (nonce_byte_size bytes)
- *		32bit AAD_byte_size
+ *		32bit: AAD_byte_size
  *		byte array: AAD data (AAD_byte_size bytes)
- *		32bit MAC byte size
+ *		32bit: MAC byte size
  *
  * AES GMAC
- *   head:	32bit type = SKS_CKM_AES_GMAC
- *		32bit params byte size = 12
- *  params:	12byte IV
+ *   head:	32bit: type = PKCS11_CKM_AES_GMAC
+ *		32bit: params byte size = 12
+ *  params:	12byte: IV
  *
  * AES CMAC with general length, params relates to struct CK_MAC_GENERAL_PARAMS.
- *   head:	32bit type = SKS_CKM_AES_CMAC_GENERAL
- *		32bit params byte size = 12
- *  params:	32bit byte size of the output CMAC data
+ *   head:	32bit: type = PKCS11_CKM_AES_CMAC_GENERAL
+ *		32bit: params byte size = 12
+ *  params:	32bit: byte size of the output CMAC data
  *
  * AES CMAC fixed size (16byte CMAC)
- *   head:	32bit type = SKS_CKM_AES_CMAC_GENERAL
- *		32bit size = 0
+ *   head:	32bit: type = PKCS11_CKM_AES_CMAC_GENERAL
+ *		32bit: size = 0
  *
  * AES derive by ECB, params relates to struct CK_KEY_DERIVATION_STRING_DATA.
- *   head:	32bit type = SKS_CKM_AES_ECB_ENCRYPT_DATA
- *		32bit params byte size
- *  params:	32bit byte size of the data to encrypt
+ *   head:	32bit: type = PKCS11_CKM_AES_ECB_ENCRYPT_DATA
+ *		32bit: params byte size
+ *  params:	32bit: byte size of the data to encrypt
  *		byte array: data to encrypt
  *
  * AES derive by CBC, params relates to struct CK_AES_CBC_ENCRYPT_DATA_PARAMS.
- *   head:	32bit type = SKS_CKM_AES_CBC_ENCRYPT_DATA
- *		32bit params byte size
- *  params:	16byte IV
- *		32bit byte size of the data to encrypt
+ *   head:	32bit: type = PKCS11_CKM_AES_CBC_ENCRYPT_DATA
+ *		32bit: params byte size
+ *  params:	16byte: IV
+ *		32bit: byte size of the data to encrypt
  *		byte array: data to encrypt
  *
  * AES and generic secret generation
- *   head:	32bit type = SKS_CKM_AES_KEY_GEN
- *			  or SKS_CKM_GENERIC_SECRET_KEY_GEN
- *		32bit size = 0
+ *   head:	32bit: type = PKCS11_CKM_AES_KEY_GEN
+ *			   or PKCS11_CKM_GENERIC_SECRET_KEY_GEN
+ *		32bit: size = 0
  *
  * ECDH, params relates to struct CK_ECDH1_DERIVE_PARAMS.
- *   head:	32bit: type = SKS_CKM_ECDH1_DERIVE
- *			   or SKS_CKM_ECDH1_COFACTOR_DERIVE
+ *   head:	32bit: type = PKCS11_CKM_ECDH1_DERIVE
+ *			   or PKCS11_CKM_ECDH1_COFACTOR_DERIVE
  *		32bit: params byte size
- *  params:	32bit: key derivation function (SKS_CKD_xxx)
+ *  params:	32bit: key derivation function (PKCS11_CKD_xxx)
  *		32bit: byte size of the shared data
  *		byte array: shared data
  *		32bit: byte: size of the public data
  *		byte array: public data
  *
  * AES key wrap by ECDH, params relates to struct CK_ECDH_AES_KEY_WRAP_PARAMS.
- *   head:	32bit: type = SKS_CKM_ECDH_AES_KEY_WRAP
+ *   head:	32bit: type = PKCS11_CKM_ECDH_AES_KEY_WRAP
  *		32bit: params byte size
  *  params:	32bit: bit size of the AES key
- *		32bit: key derivation function (SKS_CKD_xxx)
+ *		32bit: key derivation function (PKCS11_CKD_xxx)
  *		32bit: byte size of the shared data
  *		byte array: shared data
  *
+ * RSA_PKCS (pre-hashed payload)
+ *   head:	32bit: type = PKCS11_CKM_RSA_PKCS
+ *		32bit: size = 0
+ *
  * RSA PKCS OAEP, params relates to struct CK_RSA_PKCS_OAEP_PARAMS.
- *   head:	32bit: type = SKS_CKM_RSA_PKCS_OAEP
+ *   head:	32bit: type = PKCS11_CKM_RSA_PKCS_OAEP
  *		32bit: params byte size
- *  params:	32bit: hash algorithm identifier (SKS_CK_M_xxx)
- *		32bit: CK_RSA_PKCS_MGF_TYPE
- *		32bit: CK_RSA_PKCS_OAEP_SOURCE_TYPE
+ *  params:	32bit: hash algorithm identifier (PKCS11_CK_M_xxx)
+ *		32bit: PKCS11_CK_RSA_PKCS_MGF_TYPE
+ *		32bit: PKCS11_CK_RSA_PKCS_OAEP_SOURCE_TYPE
  *		32bit: byte size of the source data
  *		byte array: source data
  *
  * RSA PKCS PSS, params relates to struct CK_RSA_PKCS_PSS_PARAMS.
- *   head:	32bit: type = SKS_CKM_RSA_PKCS_PSS
- *			   or SKS_CKM_SHA256_RSA_PKCS_PSS
- *			   or SKS_CKM_SHA384_RSA_PKCS_PSS
- *			   or SKS_CKM_SHA512_RSA_PKCS_PSS
+ *   head:	32bit: type = PKCS11_CKM_RSA_PKCS_PSS
+ *			   or PKCS11_CKM_SHA256_RSA_PKCS_PSS
+ *			   or PKCS11_CKM_SHA384_RSA_PKCS_PSS
+ *			   or PKCS11_CKM_SHA512_RSA_PKCS_PSS
  *		32bit: params byte size
- *  params:	32bit: hash algorithm identifier (SKS_CK_M_xxx)
- *		32bit: CK_RSA_PKCS_MGF_TYPE
+ *  params:	32bit: hash algorithm identifier (PKCS11_CK_M_xxx)
+ *		32bit: PKCS11_CK_RSA_PKCS_MGF_TYPE
  *		32bit: byte size of the salt in the PSS encoding
  *
  * AES key wrapping by RSA, params relates to struct CK_RSA_AES_KEY_WRAP_PARAMS.
- *   head:	32bit: type = CKM_RSA_AES_KEY_WRAP
+ *   head:	32bit: type = PKCS11_CKM_RSA_AES_KEY_WRAP
  *		32bit: params byte size
  *  params:	32bit: bit size of the AES key
- *		32bit: hash algorithm identifier (SKS_CK_M_xxx)
- *		32bit: CK_RSA_PKCS_MGF_TYPE
- *		32bit: CK_RSA_PKCS_OAEP_SOURCE_TYPE
+ *		32bit: hash algorithm identifier (PKCS11_CK_M_xxx)
+ *		32bit: PKCS11_CK_RSA_PKCS_MGF_TYPE
+ *		32bit: PKCS11_CK_RSA_PKCS_OAEP_SOURCE_TYPE
  *		32bit: byte size of the source data
  *		byte array: source data
  */

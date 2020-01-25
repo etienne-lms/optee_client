@@ -23,7 +23,6 @@ struct ck2str {
  * Return a pointer to a string buffer of "CKA_xxx\0" attribute ID
  */
 static struct ck2str cka2str_table[] = {
-	/* OP-TEE SKS ID representing a not-yet defined value */
 	/* Standard CK attributes */
 	CK2STR_ENTRY(CKA_CLASS),
 	CK2STR_ENTRY(CKA_TOKEN),

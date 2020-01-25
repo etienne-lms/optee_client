@@ -191,7 +191,7 @@ struct CK_ATTRIBUTE {
 #define CKA_SUPPORTED_CMS_ATTRIBUTES	0x0503
 #define CKA_ALLOWED_MECHANISMS		(0x0600 | CKF_ARRAY_ATTRIBUTE)
 
-/* SKS added vendor identifiers */
+/* PKCS11 extra vendor identifiers */
 #define CKA_VENDOR_EC_POINT_X		(0x01000 | CKA_VENDOR_DEFINED)
 #define CKA_VENDOR_EC_POINT_Y		(0x01001 | CKA_VENDOR_DEFINED)
 

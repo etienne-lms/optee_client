@@ -13,7 +13,7 @@
 #include <tee_client_api.h>
 
 /*
- * SKS reserves vendor ID 0xffffffff to represent an invalid ID
+ * PKCS11 TA reserves vendor ID 0xffffffff to represent an invalid ID
  * (attribute class, type, ...)
  */
 #define CK_VENDOR_INVALID_ID		0xffffffffUL
@@ -41,7 +41,7 @@ DECLARE_CK2SKS_FUNCTIONS(rsa_pkcs_oaep_source_type,
  * Convert structure struct sks_token_info retreived from TA into a
  * cryptoki API compliant CK_TOKEN_INFO structure.
  *
- * struct sks_token_info is defined in the SKS TA API.
+ * struct sks_token_info is defined in the PKCS11 TA API.
  */
 CK_RV sks2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
 			struct sks_token_info *sks_info);

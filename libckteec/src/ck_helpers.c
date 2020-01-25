@@ -10,8 +10,8 @@
 #include "local_utils.h"
 
 /*
- * SKS TA returns Cryptoki like information structure.
- * These routine convert the SKS format structure and bit flags
+ * PKCS11 TA returns Cryptoki like information structure.
+ * These routine convert the PKCS11 TA format structure and bit flags
  * from/into Cryptoki format structures and bit flags.
  */
 #define MEMCPY_FIELD(_dst, _src, _f) \
@@ -157,9 +157,9 @@ struct ck2sks {
 };
 
 /*
- * Macros to define the SKS identifier relate to a Cryptoki identifier.
- * Use CK2SKS_ID() when SKS identifier label is SKS_<CK-label>.
- * Use CK2SKS_BRACE() when specific SKS identifier regarding Cryptoki CK label.
+ * Macros to define the PKCS11 identifier relate to a Cryptoki identifier.
+ * Use CK2SKS_ID() when PKCS11 identifier label is PKCS11_<CK-label>.
+ * Use CK2SKS_BRACE() when specific PKCS11 identifier regarding Cryptoki CK label.
  */
 #define CK2SKS_ID(ck_id)		{ .ck = ck_id, .sks = SKS_ ## ck_id }
 #define CK2SKS_ID_BRACE(ck_id, sks_id)	{ .ck = ck_id, .sks = sks_id }
@@ -327,7 +327,7 @@ static const struct ck2sks attribute_type[] = {
 	CK2SKS_ID(CKA_DESTROYABLE),
 	CK2SKS_ID(CKA_ALWAYS_AUTHENTICATE),
 	CK2SKS_ID(CKA_WRAP_WITH_TRUSTED),
-	/* Specifc SKS attribute IDs */
+	/* Specifc PKCS11 attribute IDs */
 	CK2SKS_ID_BRACE(CKA_VENDOR_EC_POINT_X, SKS_CKA_EC_POINT_X),
 	CK2SKS_ID_BRACE(CKA_VENDOR_EC_POINT_Y, SKS_CKA_EC_POINT_Y),
 	CK2SKS_ID_BRACE(CK_VENDOR_INVALID_ID, SKS_UNDEFINED_ID),
@@ -564,7 +564,7 @@ CK_RV teec2ck_rv(TEEC_Result res)
 		return CKR_FUNCTION_FAILED;
 	}
 }
-/* Convert a array of mechanism type from sks into CK_MECHANIMS_TYPE */
+/* Convert a array of mechanism type from PKCS11 into CK_MECHANIMS_TYPE */
 CK_RV sks2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst,
 				 void *src, size_t count)
 {
@@ -582,7 +582,7 @@ CK_RV sks2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst,
 	return CKR_OK;
 }
 
-/* Convert structure CK_MECHANIMS_INFO from sks to ck (3 ulong fields) */
+/* Convert structure CK_MECHANIMS_INFO from PKCS11 to CK IDs (3 ulong fields) */
 CK_RV sks2ck_mechanism_info(CK_MECHANISM_INFO *info, void *src)
 {
 	struct sks_mechanism_info sks;

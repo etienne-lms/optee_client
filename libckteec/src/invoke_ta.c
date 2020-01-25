@@ -13,8 +13,8 @@
 #include "local_utils.h"
 
 /*
- * All requests (invocation of the SKS) currently go through a
- * single GPD TEE session toward the SKS TA.
+ * All requests (invocation of the PKCS11 TA) currently go through a
+ * single GPD TEE session toward the PKCS11 TA.
  */
 struct sks_primary_context {
 	TEEC_Context context;
@@ -262,7 +262,7 @@ static CK_RV invoke_ta(struct sks_invoke *sks_ctx, unsigned long cmd,
 		return teec2ck_rv(res);
 	}
 
-	/* Get SKS return value from ctrl buffer, if none we expect success */
+	/* Get PKCS11 TA return value from ctrl buffer, if none we expect success */
 	if (ctrl &&
 	    ((ctrl_sz && op.params[0].tmpref.size == sizeof(uint32_t)) ||
 	    (!ctrl_sz && op.params[0].memref.size == sizeof(uint32_t)))) {

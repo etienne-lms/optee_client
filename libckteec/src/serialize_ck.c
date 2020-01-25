@@ -28,8 +28,8 @@ struct ck_ref {
 
 #if 0
 /*
- * Append cryptoki generic buffer reference structure into a sks serial
- * object.
+ * Append cryptoki generic buffer reference structure into a serial
+ * object for sharing with the PKCS11 TA.
  *
  * ck_ref points to a structure aligned CK reference (attributes or else)
  */
@@ -509,7 +509,7 @@ static CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
 	if (!out->pValue)
 		return CKR_OK;
 
-	/* Specific ulong encoded as 32bit in SKS TA API */
+	/* Specific ulong encoded as 32bit in PKCS11 TA API */
 	if (ck_attr_is_ulong(out->type)) {
 		if (out->ulValueLen != sizeof(CK_ULONG))
 			return CKR_ATTRIBUTE_TYPE_INVALID;
@@ -598,7 +598,8 @@ out:
  *
  * Below are each structure specific mechanisms parameters.
  *
- * Be careful that CK_ULONG based types translate to 32bit sks ulong fields.
+ * Be careful that CK_ULONG based types translate to 32bit ulong fields in
+ * the PKCS11 ABI.
  */
 
 /*
@@ -961,9 +962,9 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
  * @mechanism - pointer of the in structure aligned CK_MECHANISM.
  *
  * Serialized content:
- *	[sks-mechanism-type][sks-mechanism-param-blob]
+ *	[mechanism-type][mechanism-param-blob]
  *
- * [sks-mechanism-param-blob] depends on mechanism type ID, see
+ * [mechanism-param-blob] depends on mechanism type ID, see
  * serialize_mecha_XXX().
  */
 CK_RV serialize_ck_mecha_params(struct serializer *obj,
