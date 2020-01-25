@@ -7,6 +7,7 @@
 #define PKCS11_TA_H
 
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #define TA_SKS_UUID { 0xfd02c9da, 0x306c, 0x48c7, \
@@ -15,6 +16,15 @@
 /* SKS trusted application version information */
 #define SKS_VERSION_ID0		0
 #define SKS_VERSION_ID1		0
+
+/* Attribute specific values */
+#define PKCS11_UNAVAILABLE_INFORMATION		UINT32_C(0xFFFFFFFF)
+#define PKCS11_UNDEFINED_ID			PKCS11_UNAVAILABLE_INFORMATION
+#define PKCS11_FALSE				false
+#define PKCS11_TRUE				true
+
+// Temporary for compat. WIll be removed once fully upgraded from SKS to PKCS11
+#define SKS_UNDEFINED_ID			PKCS11_UNDEFINED_ID
 
 /*
  * SKS_CMD_PING		Acknowledge TA presence and return TA version info
@@ -713,11 +723,6 @@ struct sks_attribute_head {
 /* Status without strict equivalence in Cryptoki API */
 #define SKS_NOT_FOUND				0x00001000
 #define SKS_NOT_IMPLEMENTED			0x00001001
-
-/* Attribute specific values */
-#define SKS_UNDEFINED_ID			((uint32_t)0xFFFFFFFF)
-#define SKS_FALSE				0
-#define SKS_TRUE				1
 
 /*
  * Attribute identificators
