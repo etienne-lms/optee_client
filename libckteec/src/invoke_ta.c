@@ -26,7 +26,7 @@ static struct sks_invoke primary_invoke;
 
 static int open_primary_context(void)
 {
-	TEEC_UUID uuid = TA_SKS_UUID;
+	TEEC_UUID uuid = PKCS11_TA_UUID;
 	uint32_t origin;
 	TEEC_Result res;
 
