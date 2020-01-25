@@ -12,8 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SKS_MAX_BOOLPROP_SHIFT	64
-#define SKS_MAX_BOOLPROP_ARRAY	(SKS_MAX_BOOLPROP_SHIFT / sizeof(uint32_t))
+#define PKCS11_MAX_BOOLPROP_SHIFT	64
+#define PKCS11_MAX_BOOLPROP_ARRAY	(PKCS11_MAX_BOOLPROP_SHIFT / sizeof(uint32_t))
 
 /*
  * Struct used to create the buffer storing the serialized data.
@@ -25,7 +25,7 @@ struct serializer {
 	size_t item_count;	/* number of items in entry table */
 	uint32_t object;
 	uint32_t type;
-	uint32_t boolprop[SKS_MAX_BOOLPROP_ARRAY];
+	uint32_t boolprop[PKCS11_MAX_BOOLPROP_ARRAY];
 };
 
 size_t get_serial_object_size(struct serializer *obj);

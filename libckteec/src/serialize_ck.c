@@ -280,7 +280,7 @@ bail:
 	return rv;
 }
 
-#ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 static CK_RV get_class(struct serializer *obj, struct ck_ref *ref)
 {
 	CK_ULONG ck_value;
@@ -335,7 +335,7 @@ static CK_RV get_type(struct serializer *obj, struct ck_ref *ref,
 	return CKR_OK;
 }
 
-#ifdef /* SKS_WITH_BOOLPROP_ATTRIBS_IN_HEAD */
+#ifdef /* PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD */
 static CK_RV get_boolprop(struct serializer *obj,
 			  struct ck_ref *ref, uint32_t *sanity)
 {
@@ -351,7 +351,7 @@ static CK_RV get_boolprop(struct serializer *obj,
 	if (shift < 0)
 		return CKR_NO_EVENT;
 
-	if (shift >= SKS_MAX_BOOLPROP_SHIFT)
+	if (shift >= PKCS11_MAX_BOOLPROP_SHIFT)
 		return CKR_FUNCTION_FAILED;
 
 	memcpy(&bbool, ref->ptr, sizeof(bbool));
@@ -380,7 +380,7 @@ static CK_RV get_boolprop(struct serializer *obj,
 
 	return CKR_OK;
 }
-#endif /* SKS_WITH_BOOLPROP_ATTRIBS_IN_HEAD */
+#endif /* PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD */
 
 /*
  * Extract object generic attributes
@@ -394,7 +394,7 @@ static CK_RV serialize_generic_attributes(struct serializer *obj,
 {
 	struct ck_ref *ref;
 	size_t n;
-	uint32_t sanity[SKS_MAX_BOOLPROP_ARRAY] = { 0 };
+	uint32_t sanity[PKCS11_MAX_BOOLPROP_ARRAY] = { 0 };
 	CK_RV rv = CKR_OK;
 	CK_ULONG class;
 
@@ -418,7 +418,7 @@ static CK_RV serialize_generic_attributes(struct serializer *obj,
 			continue;
 		}
 
-#ifdef SKS_WITH_BOOLPROP_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD
 		if (sks_object_has_boolprop(obj->object) &&
 		    ck_attr2boolprop_shift(ref->id) >= 0) {
 			rv = get_boolprop(obj, ref, sanity);
@@ -439,12 +439,12 @@ static CK_RV serialize_generic_attributes(struct serializer *obj,
 static int ck_attr_is_generic(CK_ULONG attribute_id)
 {
 	return (ck_attr_is_class(attribute_id) ||
-#ifdef SKS_WITH_BOOLPROP_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD
 		(ck_attr2boolprop_shift(attribute_id) >= 0) ||
 #endif
 		ck_attr_is_type(attribute_id));
 }
-#endif /* SKS_WITH_GENERIC_ATTRIBS_IN_HEAD */
+#endif /* PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD */
 
 /* CK attribute reference arguments are list of attribute item */
 CK_RV serialize_ck_attributes(struct serializer *obj,
@@ -458,7 +458,7 @@ CK_RV serialize_ck_attributes(struct serializer *obj,
 	if (rv)
 		return rv;
 
-#ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 	rv = serialize_generic_attributes(obj, attributes, count);
 	if (rv)
 		goto out;
@@ -469,7 +469,7 @@ CK_RV serialize_ck_attributes(struct serializer *obj,
 
 		memcpy(&attr, cur_attr, sizeof(attr));
 
-#ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 		if (ck_attr_is_generic(attr.type))
 			continue;
 #endif
@@ -563,7 +563,7 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
 
 	curr_head += sizeof(struct sks_object_head);
 
-#ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 #error Not supported.
 #endif
 

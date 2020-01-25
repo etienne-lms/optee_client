@@ -32,11 +32,11 @@ void finalize_serial_object(struct serializer *obj)
 
 	memset(&head, 0xFF, sizeof(head));
 
-#ifdef SKS_WITH_GENERIC_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 fsdf fsd fsdf sdf
 	head.object = obj->object;
 	head.type = obj->type;
-#ifdef SKS_WITH_BOOLPROP_ATTRIBS_IN_HEAD
+#ifdef PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD
 	head.boolpropl = *((uint32_t *)obj->boolprop);
 	head.boolproph = *((uint32_t *)obj->boolprop + 1);
 #endif
