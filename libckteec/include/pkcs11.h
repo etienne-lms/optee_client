@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /*
- * Copyright (c) 2018, Linaro Limited
+ * Copyright (c) 2018-2020, Linaro Limited
  */
 
-#ifndef __PKCS11_H__
-#define __PKCS11_H__
+#ifndef PKCS11_H
+#define PKCS11_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -1480,4 +1480,4 @@ CK_RV C_WaitForSlotEvent(
 }
 #endif
 
-#endif /*__PKCS11_H__*/
+#endif /*PKCS11_H*/

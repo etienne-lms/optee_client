@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /*
- * Copyright (c) 2017-2018, Linaro Limited
+ * Copyright (c) 2020, Linaro Limited
  */
 
-#ifndef __LOCAL_UTILS_H
-#define __LOCAL_UTILS_H
+#ifndef LIBCKTEEC_LOCAL_UTILS_H
+#define LIBCKTEEC_LOCAL_UTILS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,4 +15,4 @@
 
 #define ARRAY_SIZE(array)	(sizeof(array) / sizeof(array[0]))
 
-#endif /*__LOCAL_UTILS_H*/
+#endif /*LIBCKTEEC_LOCAL_UTILS_H*/

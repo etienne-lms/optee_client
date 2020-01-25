@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#ifndef __SERIALIZE_CK_H
-#define __SERIALIZE_CK_H
+#ifndef LIBCKTEEC_SERIALIZE_CK_H
+#define LIBCKTEEC_SERIALIZE_CK_H
 
 #include <pkcs11.h>
 #include "serializer.h"
@@ -26,4 +26,4 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 CK_RV serial_trace_attributes(char *prefix, struct serializer *obj);
 CK_RV serial_trace_attributes_from_head(char *prefix, void *ref);
 
-#endif /*__SERIALIZE_CK_H*/
+#endif /*LIBCKTEEC_SERIALIZE_CK_H*/

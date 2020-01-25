@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#ifndef __PKCS11_TOKEN_H
-#define __PKCS11_TOKEN_H
+#ifndef LIBCKTEEC_PKCS11_TOKEN_H
+#define LIBCKTEEC_PKCS11_TOKEN_H
 
 #include <pkcs11.h>
 
@@ -49,4 +49,4 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 		   CK_UTF8CHAR_PTR pin, CK_ULONG pin_len);
 CK_RV sks_ck_logout(CK_SESSION_HANDLE session);
 
-#endif /*__PKCS11_TOKEN_H*/
+#endif /*LIBCKTEEC_PKCS11_TOKEN_H*/

@@ -1,11 +1,10 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
 /*
- * Copyright (c) 2017-2018, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2020, Linaro Limited
  */
 
-#ifndef __HELPERS_CK_H
-#define __HELPERS_CK_H
+#ifndef LIBCKTEEC_CK_HELPERS_H
+#define LIBCKTEEC_CK_HELPERS_H
 
 #include <pkcs11.h>
 #include <stdint.h>
@@ -112,4 +111,4 @@ CK_RV ck_guess_key_type(CK_MECHANISM_PTR mecha,
 		       CK_ATTRIBUTE_PTR attrs, CK_ULONG_PTR count,
 		       CK_ATTRIBUTE_PTR *attrs_new_p);
 
-#endif /*__HELPERS_CK_H*/
+#endif /*LIBCKTEEC_CK_HELPERS_H*/

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#ifndef __PKCS11_PROCESSING_H
-#define __PKCS11_PROCESSING_H
+#ifndef LIBCKTEEC_PKCS11_PROCESSING_H
+#define LIBCKTEEC_PKCS11_PROCESSING_H
 
 #include <pkcs11.h>
 
@@ -101,4 +101,4 @@ CK_RV ck_get_attribute_value(CK_SESSION_HANDLE session,
 			     CK_ATTRIBUTE_PTR attribs,
 			     CK_ULONG count);
 
-#endif /*__PKCS11_PROCESSING_H*/
+#endif /*LIBCKTEEC_PKCS11_PROCESSING_H*/

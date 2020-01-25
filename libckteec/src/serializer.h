@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#ifndef __SERIALIZER_H
-#define __SERIALIZER_H
+#ifndef LIBCKTEEC_SERIALIZER_H
+#define LIBCKTEEC_SERIALIZER_H
 
 #include <pkcs11.h>
 #include <pkcs11_ta.h>
@@ -72,5 +72,5 @@ CK_RV serial_get_attribute(void *ref, uint32_t attribute,
 CK_RV serial_get_attribute_multi(void *ref, uint32_t attribute,
 			   void *attr, size_t *attr_size);
 
-#endif /*__SERIALIZER_H*/
+#endif /*LIBCKTEEC_SERIALIZER_H*/
 

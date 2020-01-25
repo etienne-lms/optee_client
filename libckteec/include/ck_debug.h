@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017-2018, Linaro Limited
+ * Copyright (c) 2018-2020, Linaro Limited
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#ifndef __SKS_CK_DEBUG_H
-#define __SKS_CK_DEBUG_H
+#ifndef LIBCKTEEC_CK_DEBUG_H
+#define LIBCKTEEC_CK_DEBUG_H
 
 #include <pkcs11.h>
 
@@ -28,4 +28,4 @@ const char *cktype2str(CK_ULONG id, CK_ULONG class);
 
 const char *skscmd2str(unsigned int id);
 
-#endif /*__SKS_CK_DEBUG_H*/
+#endif /*LIBCKTEEC_CK_DEBUG_H*/

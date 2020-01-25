@@ -1,11 +1,10 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
 /*
- * Copyright (c) 2017, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 20187-2020, Linaro Limited
  */
 
-#ifndef __INVOKE_TA_H
-#define __INVOKE_TA_H
+#ifndef LIBCKTEEC_INVOKE_TA_H
+#define LIBCKTEEC_INVOKE_TA_H
 
 #include <pkcs11.h>
 #include <tee_client_api.h>
@@ -157,4 +156,4 @@ CK_RV ck_invoke_ta_in_in(struct sks_invoke *sks_ctx,
 /* sks_invoke_terminate - Release all allocated invocation resources */
 void sks_invoke_terminate(void);
 
-#endif /*__INVOKE_TA_H*/
+#endif /*LIBCKTEEC_INVOKE_TA_H*/
