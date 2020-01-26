@@ -268,10 +268,10 @@ static CK_RV invoke_ta(struct sks_invoke *sks_ctx, unsigned long cmd,
 	    (!ctrl_sz && op.params[0].memref.size == sizeof(uint32_t)))) {
 		memcpy(&sks_rc, ctrl, sizeof(uint32_t));
 	} else {
-		sks_rc = SKS_CKR_OK;
+		sks_rc = PKCS11_CKR_OK;
 	}
 
-	if (sks_rc == SKS_CKR_OK || sks_rc == SKS_CKR_BUFFER_TOO_SMALL) {
+	if (sks_rc == PKCS11_CKR_OK || sks_rc == PKCS11_CKR_BUFFER_TOO_SMALL) {
 		if (io1_dir == DIR_OUT && io1_sz)
 			*io1_sz = op.params[1].tmpref.size;
 		if (io2_dir == DIR_OUT && io2_sz)

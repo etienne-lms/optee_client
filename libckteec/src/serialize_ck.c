@@ -184,7 +184,7 @@ static int ck_attr_is_ulong(CK_ATTRIBUTE_TYPE attribute_id)
 
 static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 {
-	uint32_t sks_id = SKS_UNDEFINED_ID;
+	uint32_t sks_id = PKCS11_UNDEFINED_ID;
 	uint32_t sks_size = 0;
 	uint32_t sks_data32;
 	void *sks_pdata;
@@ -196,7 +196,7 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 
 	/* Expect only those from the identification table */
 	sks_id = ck2sks_attribute_type(attr->type);
-	if (sks_id == SKS_UNDEFINED_ID)
+	if (sks_id == PKCS11_UNDEFINED_ID)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
 
 	if (ck_attr_is_ulong(attr->type)) {
@@ -237,7 +237,7 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 			CK_MECHANISM_TYPE *type = attr->pValue;
 
 			sks_data32 = ck2sks_mechanism_type(type[m]);
-			if (sks_data32 == SKS_UNDEFINED_ID) {
+			if (sks_data32 == PKCS11_UNDEFINED_ID) {
 				free(sks_pdata);
 				return CKR_MECHANISM_INVALID;
 			}
@@ -293,10 +293,10 @@ static CK_RV get_class(struct serializer *obj, struct ck_ref *ref)
 
 	sks_value = ck2sks_object_class(ck_value);
 
-	if (sks_value == SKS_UNDEFINED_ID)
+	if (sks_value == PKCS11_UNDEFINED_ID)
 		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
 
-	if (obj->object == SKS_UNDEFINED_ID)
+	if (obj->object == PKCS11_UNDEFINED_ID)
 		obj->object = sks_value;
 
 	if (obj->object != sks_value) {
@@ -320,10 +320,10 @@ static CK_RV get_type(struct serializer *obj, struct ck_ref *ref,
 
 	sks_value = ck2sks_type_in_class(ck_value, class);
 
-	if (sks_value == SKS_UNDEFINED_ID)
+	if (sks_value == PKCS11_UNDEFINED_ID)
 		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
 
-	if (obj->type == SKS_UNDEFINED_ID)
+	if (obj->type == PKCS11_UNDEFINED_ID)
 		obj->type = sks_value;
 
 	if (obj->type != sks_value) {
@@ -975,11 +975,11 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 
 	memset(obj, 0, sizeof(*obj));
 
-	obj->object = SKS_CKO_MECHANISM;
+	obj->object = PKCS11_CKO_MECHANISM;
 
 	memcpy(&mecha, mechanism, sizeof(mecha));
 	obj->type = ck2sks_mechanism_type(mecha.mechanism);
-	if (obj->type == SKS_UNDEFINED_ID)
+	if (obj->type == PKCS11_UNDEFINED_ID)
 		return CKR_MECHANISM_INVALID;
 
 	switch (mecha.mechanism) {
@@ -1093,8 +1093,8 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 			*((char *)cur + sizeof(ref) + 3));
 
 		switch (ref.id) {
-		case SKS_CKA_WRAP_TEMPLATE:
-		case SKS_CKA_UNWRAP_TEMPLATE:
+		case PKCS11_CKA_WRAP_TEMPLATE:
+		case PKCS11_CKA_UNWRAP_TEMPLATE:
 			serial_trace_attributes_from_head(prefix2,
 							  cur + sizeof(ref));
 			break;

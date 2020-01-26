@@ -247,7 +247,7 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 
 	ctrl[0] = (uint32_t)slot;
 	ctrl[1] = ck2sks_mechanism_type(type);
-	if (ctrl[1] == SKS_UNDEFINED_ID) {
+	if (ctrl[1] == PKCS11_UNDEFINED_ID) {
 		LOG_ERROR("mechanism is not support by this library\n");
 		return CKR_DEVICE_ERROR;
 	}
