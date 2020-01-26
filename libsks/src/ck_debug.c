@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include <sks_ta.h>
-#include <sks_ck_debug.h>
+#include <ck_debug.h>
+#include <pkcs11_ta.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

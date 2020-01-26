@@ -5,8 +5,8 @@
  */
 
 #include <pkcs11.h>
-#include <sks_ck_debug.h>
-#include <sks_ta.h>
+#include <ck_debug.h>
+#include <pkcs11_ta.h>
 #include <stdlib.h>
 #include <string.h>
 

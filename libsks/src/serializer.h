@@ -8,7 +8,7 @@
 #define __SERIALIZER_H
 
 #include <pkcs11.h>
-#include <sks_ta.h>
+#include <pkcs11_ta.h>
 #include <stddef.h>
 #include <stdint.h>
 

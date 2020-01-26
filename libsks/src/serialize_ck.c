@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <sks_ck_debug.h>
-#include <sks_ta.h>
+#include <ck_debug.h>
+#include <pkcs11_ta.h>
 
 #include "ck_helpers.h"
 #include "local_utils.h"

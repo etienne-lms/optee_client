@@ -10,7 +10,7 @@
 #include <pkcs11.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <sks_ta.h>
+#include <pkcs11_ta.h>
 #include <tee_client_api.h>
 
 /*
