@@ -17,7 +17,7 @@
  * (attribute class, type, ...)
  */
 #define CK_VENDOR_INVALID_ID		0xffffffffUL
-#define SKS_CK_VENDOR_INVALID_ID	0xffffffffUL
+#define PKCS11_CK_VENDOR_INVALID_ID	0xffffffffUL
 
 /* Helper for sks2ck_xxx() and ck2sks_xxx() helper declaration */
 #define DECLARE_CK2SKS_FUNCTIONS(_label, _ck_typeof)		\
