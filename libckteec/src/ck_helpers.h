@@ -19,23 +19,23 @@
 #define CK_VENDOR_INVALID_ID		0xffffffffUL
 #define PKCS11_CK_VENDOR_INVALID_ID	0xffffffffUL
 
-/* Helper for sks2ck_xxx() and ck2sks_xxx() helper declaration */
-#define DECLARE_CK2SKS_FUNCTIONS(_label, _ck_typeof)		\
-	uint32_t ck2sks_ ## _label(_ck_typeof ck);	\
-	CK_RV sks2ck_ ## _label(_ck_typeof *ck, uint32_t sks)
+/* Helper for ta2ck_xxx() and ck2ta_xxx() helper declaration */
+#define DECLARE_CK2TA_FUNCTIONS(_label, _ck_typeof)		\
+	uint32_t ck2ta_ ## _label(_ck_typeof ck);	\
+	CK_RV ta2ck_ ## _label(_ck_typeof *ck, uint32_t ta_id)
 
-DECLARE_CK2SKS_FUNCTIONS(slot_flag, CK_FLAGS);
-DECLARE_CK2SKS_FUNCTIONS(token_flag, CK_FLAGS);
-DECLARE_CK2SKS_FUNCTIONS(user_type, CK_USER_TYPE);
-DECLARE_CK2SKS_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
-DECLARE_CK2SKS_FUNCTIONS(mechanism_type, CK_MECHANISM_TYPE);
-DECLARE_CK2SKS_FUNCTIONS(mechanism_flag, CK_FLAGS);
-DECLARE_CK2SKS_FUNCTIONS(object_class, CK_OBJECT_CLASS);
-DECLARE_CK2SKS_FUNCTIONS(key_type, CK_KEY_TYPE);
-DECLARE_CK2SKS_FUNCTIONS(ec_kdf_type, CK_EC_KDF_TYPE);
-DECLARE_CK2SKS_FUNCTIONS(rsa_pkcs_mgf_type, CK_RSA_PKCS_MGF_TYPE);
-DECLARE_CK2SKS_FUNCTIONS(rsa_pkcs_oaep_source_type,
-			 CK_RSA_PKCS_OAEP_SOURCE_TYPE);
+DECLARE_CK2TA_FUNCTIONS(slot_flag, CK_FLAGS);
+DECLARE_CK2TA_FUNCTIONS(token_flag, CK_FLAGS);
+DECLARE_CK2TA_FUNCTIONS(user_type, CK_USER_TYPE);
+DECLARE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
+DECLARE_CK2TA_FUNCTIONS(mechanism_type, CK_MECHANISM_TYPE);
+DECLARE_CK2TA_FUNCTIONS(mechanism_flag, CK_FLAGS);
+DECLARE_CK2TA_FUNCTIONS(object_class, CK_OBJECT_CLASS);
+DECLARE_CK2TA_FUNCTIONS(key_type, CK_KEY_TYPE);
+DECLARE_CK2TA_FUNCTIONS(ec_kdf_type, CK_EC_KDF_TYPE);
+DECLARE_CK2TA_FUNCTIONS(rsa_pkcs_mgf_type, CK_RSA_PKCS_MGF_TYPE);
+DECLARE_CK2TA_FUNCTIONS(rsa_pkcs_oaep_source_type,
+			CK_RSA_PKCS_OAEP_SOURCE_TYPE);
 
 /*
  * Convert structure struct pkcs11_token_info retreived from TA into a
@@ -43,42 +43,42 @@ DECLARE_CK2SKS_FUNCTIONS(rsa_pkcs_oaep_source_type,
  *
  * struct pkcs11_token_info is defined in the PKCS11 TA API.
  */
-CK_RV sks2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
-			struct pkcs11_token_info *pkcs11_info);
-CK_RV sks2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
-			struct pkcs11_slot_info *pkcs11_info);
+CK_RV ta2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
+		       struct pkcs11_token_info *ta_info);
+CK_RV ta2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
+		      struct pkcs11_slot_info *ta_info);
 
 /* Backward compat on deprecated functions */
-static inline CK_RV sks2ck_attribute_id(CK_ATTRIBUTE_TYPE *ck, uint32_t sks)
+static inline CK_RV ta2ck_attribute_id(CK_ATTRIBUTE_TYPE *ck, uint32_t ta_id)
 {
-	return sks2ck_attribute_type(ck, sks);
+	return ta2ck_attribute_type(ck, ta_id);
 }
 
-static inline uint32_t ck2sks_attribute_id(CK_ATTRIBUTE_TYPE ck)
+static inline uint32_t ck2ta_attribute_id(CK_ATTRIBUTE_TYPE ck)
 {
-	return ck2sks_attribute_type(ck);
+	return ck2ta_attribute_type(ck);
 }
 
-static inline CK_RV sks2ck_class(CK_OBJECT_CLASS *ck, uint32_t sks)
+static inline CK_RV ta2ck_class(CK_OBJECT_CLASS *ck, uint32_t ta_id)
 {
-	return sks2ck_object_class(ck, sks);
+	return ta2ck_object_class(ck, ta_id);
 }
 
-static inline uint32_t ck2sks_class(CK_OBJECT_CLASS ck)
+static inline uint32_t ck2ta_class(CK_OBJECT_CLASS ck)
 {
-	return ck2sks_object_class(ck);
+	return ck2ta_object_class(ck);
 }
 
-CK_RV sks2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst, void *sks,
+CK_RV ta2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst, void *ta_data,
 				 size_t count);
-CK_RV sks2ck_mechanism_info(CK_MECHANISM_INFO *info, void *sks);
+CK_RV ta2ck_mechanism_info(CK_MECHANISM_INFO *info, void *ta_data);
 
-uint32_t ck2sks_type_in_class(CK_ULONG ck, CK_ULONG class);
-CK_RV sks2ck_type_in_class(CK_ULONG *ck, uint32_t sks, CK_ULONG class);
+uint32_t ck2ta_type_in_class(CK_ULONG ck, CK_ULONG class);
+CK_RV ta2ck_type_in_class(CK_ULONG *ck, uint32_t ta_id, CK_ULONG ta_class);
 
-int sks_attr2boolprop_shift(CK_ULONG attr);
+int ta_attr2boolprop_shift(CK_ULONG attr);
 
-CK_RV sks2ck_rv(uint32_t sks);
+CK_RV ta2ck_rv(uint32_t ta_id);
 CK_RV teec2ck_rv(TEEC_Result res);
 
 /*

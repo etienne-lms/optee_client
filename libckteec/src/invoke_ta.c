@@ -3,6 +3,7 @@
  * Copyright (c) 2017-2020, Linaro Limited
  */
 
+#include <ck_debug.h>
 #include <pkcs11.h>
 #include <pkcs11_ta.h>
 #include <stdlib.h>
@@ -280,7 +281,7 @@ static CK_RV invoke_ta(struct sks_invoke *sks_ctx, unsigned long cmd,
 			*io3_sz = op.params[3].tmpref.size;
 	}
 
-	return sks2ck_rv(sks_rc);
+	return ta2ck_rv(sks_rc);
 }
 
 CK_RV ck_invoke_ta(struct sks_invoke *sks_ctx,

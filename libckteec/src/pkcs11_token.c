@@ -107,7 +107,7 @@ int sks_ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 				NULL, 0, &pkcs11_info, &out_size))
 		return CKR_DEVICE_ERROR;
 
-	if (sks2ck_slot_info(ck_info, &pkcs11_info)) {
+	if (ta2ck_slot_info(ck_info, &pkcs11_info)) {
 		LOG_ERROR("unexpected bad token info structure\n");
 		return CKR_DEVICE_ERROR;
 	}
@@ -148,7 +148,7 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 		goto bail;
 	}
 
-	rv = sks2ck_token_info(ck_info, shm->buffer);
+	rv = ta2ck_token_info(ck_info, shm->buffer);
 
 bail:
 	sks_free_shm(shm);
@@ -222,7 +222,7 @@ CK_RV sks_ck_token_mechanism_ids(CK_SLOT_ID slot,
 		goto bail;
 	}
 
-	if (sks2ck_mechanism_type_list(mechanisms, outbuf, *count)) {
+	if (ta2ck_mechanism_type_list(mechanisms, outbuf, *count)) {
 		LOG_ERROR("unexpected bad mechanism_type list\n");
 		rv = CKR_DEVICE_ERROR;
 	}
@@ -246,7 +246,7 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 	size_t outsize = sizeof(outbuf);
 
 	ctrl[0] = (uint32_t)slot;
-	ctrl[1] = ck2sks_mechanism_type(type);
+	ctrl[1] = ck2ta_mechanism_type(type);
 	if (ctrl[1] == PKCS11_UNDEFINED_ID) {
 		LOG_ERROR("mechanism is not support by this library\n");
 		return CKR_DEVICE_ERROR;
@@ -261,7 +261,7 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 		return CKR_DEVICE_ERROR;
 	}
 
-	if (sks2ck_mechanism_info(info, &outbuf)) {
+	if (ta2ck_mechanism_info(info, &outbuf)) {
 		LOG_ERROR("unexpected bad mechanism info structure\n");
 		rv = CKR_DEVICE_ERROR;
 	}
@@ -401,7 +401,7 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 
 {
 	uint32_t pkcs11_session = session;
-	uint32_t pkcs11_user = ck2sks_user_type(user_type);
+	uint32_t pkcs11_user = ck2ta_user_type(user_type);
 	uint32_t pkcs11_pin_len = pin_len;
 	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_pin_len;
 	char *ctrl;

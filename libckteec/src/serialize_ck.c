@@ -125,7 +125,7 @@ static CK_RV serialize_indirect_attribute(struct serializer *obj,
 	 * Append the created serialized object into target object:
 	 * [attrib-id][byte-size][attributes-data]
 	 */
-	rv = serialize_32b(obj, ck2sks_attribute_type(attribute->type));
+	rv = serialize_32b(obj, ck2ta_attribute_type(attribute->type));
 	if (rv)
 		return rv;
 
@@ -195,7 +195,7 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 	unsigned int m;
 
 	/* Expect only those from the identification table */
-	pkcs11_id = ck2sks_attribute_type(attr->type);
+	pkcs11_id = ck2ta_attribute_type(attr->type);
 	if (pkcs11_id == PKCS11_UNDEFINED_ID)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
 
@@ -209,13 +209,13 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 
 	switch (attr->type) {
 	case CKA_CLASS:
-		pkcs11_data32 = ck2sks_object_class(ck_ulong);
+		pkcs11_data32 = ck2ta_object_class(ck_ulong);
 		pkcs11_pdata = &pkcs11_data32;
 		pkcs11_size = sizeof(uint32_t);
 		break;
 
 	case CKA_KEY_TYPE:
-		pkcs11_data32 = ck2sks_key_type(ck_ulong);
+		pkcs11_data32 = ck2ta_key_type(ck_ulong);
 		pkcs11_pdata = &pkcs11_data32;
 		pkcs11_size = sizeof(uint32_t);
 		break;
@@ -236,7 +236,7 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 		for (m = 0; m < n; m++) {
 			CK_MECHANISM_TYPE *type = attr->pValue;
 
-			pkcs11_data32 = ck2sks_mechanism_type(type[m]);
+			pkcs11_data32 = ck2ta_mechanism_type(type[m]);
 			if (pkcs11_data32 == PKCS11_UNDEFINED_ID) {
 				free(pkcs11_pdata);
 				return CKR_MECHANISM_INVALID;
@@ -291,7 +291,7 @@ static CK_RV get_class(struct serializer *obj, struct ck_ref *ref)
 
 	memcpy(&ck_value, ref->ptr, sizeof(ck_value));
 
-	pkcs11_value = ck2sks_object_class(ck_value);
+	pkcs11_value = ck2ta_object_class(ck_value);
 
 	if (pkcs11_value == PKCS11_UNDEFINED_ID)
 		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
@@ -318,7 +318,7 @@ static CK_RV get_type(struct serializer *obj, struct ck_ref *ref,
 
 	memcpy(&ck_value, ref->ptr, sizeof(ck_value));
 
-	pkcs11_value = ck2sks_type_in_class(ck_value, class);
+	pkcs11_value = ck2ta_type_in_class(ck_value, class);
 
 	if (pkcs11_value == PKCS11_UNDEFINED_ID)
 		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
@@ -405,7 +405,7 @@ static CK_RV serialize_generic_attributes(struct serializer *obj,
 			return rv;
 	}
 
-	rv = sks2ck_object_class(&class, obj->object);
+	rv = ta2ck_object_class(&class, obj->object);
 	if (rv)
 		return rv;
 
@@ -496,7 +496,7 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 	size_t n;
 	CK_RV rv;
 
-	rv = sks2ck_attribute_type(&(out->type), in->id);
+	rv = ta2ck_attribute_type(&(out->type), in->id);
 	if (rv)
 		return rv;
 
@@ -519,14 +519,14 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 
 	switch (out->type) {
 	case CKA_CLASS:
-		rv = sks2ck_object_class(&ck_ulong, pkcs11_data32);
+		rv = ta2ck_object_class(&ck_ulong, pkcs11_data32);
 		if (rv)
 			return rv;
 		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
 		break;
 
 	case CKA_KEY_TYPE:
-		rv = sks2ck_key_type(&ck_ulong, pkcs11_data32);
+		rv = ta2ck_key_type(&ck_ulong, pkcs11_data32);
 		if (rv)
 			return rv;
 		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
@@ -539,7 +539,7 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 
 	case CKA_ALLOWED_MECHANISMS:
 		n = out->ulValueLen / sizeof(CK_ULONG);
-		rv = sks2ck_mechanism_type_list(out->pValue, in->data, n);
+		rv = ta2ck_mechanism_type_list(out->pValue, in->data, n);
 		break;
 
 	/* Attributes which data value do not need conversion (aside ulong) */
@@ -800,7 +800,7 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_ec_kdf_type(params->kdf));
+	rv = serialize_32b(obj, ck2ta_ec_kdf_type(params->kdf));
 	if (rv)
 		return rv;
 
@@ -840,7 +840,7 @@ static CK_RV serialize_mecha_ecdh_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_ec_kdf_type(params->kdf));
+	rv = serialize_32b(obj, ck2ta_ec_kdf_type(params->kdf));
 	if (rv)
 		return rv;
 
@@ -867,16 +867,16 @@ static CK_RV serialize_mecha_rsa_oaep_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_mechanism_type(params->hashAlg));
+	rv = serialize_32b(obj, ck2ta_mechanism_type(params->hashAlg));
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_rsa_pkcs_mgf_type(params->mgf));
+	rv = serialize_32b(obj, ck2ta_rsa_pkcs_mgf_type(params->mgf));
 	if (rv)
 		return rv;
 
 	rv = serialize_32b(obj,
-			   ck2sks_rsa_pkcs_oaep_source_type(params->source));
+			   ck2ta_rsa_pkcs_oaep_source_type(params->source));
 	if (rv)
 		return rv;
 
@@ -903,11 +903,11 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_mechanism_type(params->hashAlg));
+	rv = serialize_32b(obj, ck2ta_mechanism_type(params->hashAlg));
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_rsa_pkcs_mgf_type(params->mgf));
+	rv = serialize_32b(obj, ck2ta_rsa_pkcs_mgf_type(params->mgf));
 	if (rv)
 		return rv;
 
@@ -934,16 +934,16 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_mechanism_type(oaep_p->hashAlg));
+	rv = serialize_32b(obj, ck2ta_mechanism_type(oaep_p->hashAlg));
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2sks_rsa_pkcs_mgf_type(oaep_p->mgf));
+	rv = serialize_32b(obj, ck2ta_rsa_pkcs_mgf_type(oaep_p->mgf));
 	if (rv)
 		return rv;
 
 	rv = serialize_32b(obj,
-			   ck2sks_rsa_pkcs_oaep_source_type(oaep_p->source));
+			   ck2ta_rsa_pkcs_oaep_source_type(oaep_p->source));
 	if (rv)
 		return rv;
 
@@ -978,7 +978,7 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 	obj->object = PKCS11_CKO_MECHANISM;
 
 	memcpy(&mecha, mechanism, sizeof(mecha));
-	obj->type = ck2sks_mechanism_type(mecha.mechanism);
+	obj->type = ck2ta_mechanism_type(mecha.mechanism);
 	if (obj->type == PKCS11_UNDEFINED_ID)
 		return CKR_MECHANISM_INVALID;
 
