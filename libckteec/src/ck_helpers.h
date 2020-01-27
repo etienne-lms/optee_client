@@ -88,8 +88,8 @@ size_t ck_attr_is_class(uint32_t attribute_id);
 size_t ck_attr_is_type(uint32_t attribute_id);
 int ck_attr2boolprop_shift(CK_ULONG attr);
 
-int sks_object_has_boolprop(uint32_t class);
-int sks_class_has_type(uint32_t class);
+int ta_object_has_boolprop(uint32_t class);
+int ta_class_has_type(uint32_t class);
 
 /*
  * Try to guess key type if mechanism is key generation

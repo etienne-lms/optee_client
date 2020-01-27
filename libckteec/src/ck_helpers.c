@@ -119,9 +119,9 @@ CK_RV ta2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
 }
 
 /*
- * Helpers for CK/SKS conversions: tables of identifiers
+ * Helpers for conversion of CK IDs to/from PKCS11 TA IDs: tables of identifiers
  *
- * Define conversion tables between Cryptoki IDs and SKS 32bit IDs.
+ * Define conversion tables between Cryptoki IDs and PKCS11 TA 32bit IDs.
  * By convention, Cryptoki variable types CK_<XYZ> (i.e CK_ATTRIBUTE_TYPE)
  * are registered through DECLARE_CK2TA_FUNCTIONS(<xyz>); in ck_helpers.h
  * and locally through DEFINE_CK2TA_FUNCTIONS(<xyz>) in this source file.
@@ -625,7 +625,8 @@ size_t ck_attr_is_type(uint32_t id)
 		return 0;
 	}
 }
-int sks_object_has_boolprop(uint32_t class)
+
+int ta_object_has_boolprop(uint32_t class)
 {
 	switch (class) {
 	case PKCS11_CKO_DATA:
@@ -639,7 +640,8 @@ int sks_object_has_boolprop(uint32_t class)
 		return 0;
 	}
 }
-int sks_class_has_type(uint32_t class)
+
+int ta_class_has_type(uint32_t class)
 {
 	switch (class) {
 	case PKCS11_CKO_CERTIFICATE:

@@ -419,7 +419,7 @@ static CK_RV serialize_generic_attributes(struct serializer *obj,
 		}
 
 #ifdef PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD
-		if (sks_object_has_boolprop(obj->object) &&
+		if (ta_object_has_boolprop(obj->object) &&
 		    ck_attr2boolprop_shift(ref->id) >= 0) {
 			rv = get_boolprop(obj, ref, sanity);
 			if (rv == CKR_NO_EVENT)
