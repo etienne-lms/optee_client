@@ -351,6 +351,7 @@ CK_RV sks_ck_init_pin(CK_SESSION_HANDLE session,
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
+	/* ABI: [session][pin_len][pin] */
 	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
 	memcpy(ctrl + sizeof(uint32_t), &pkcs11_pin_len, sizeof(uint32_t));
 	memcpy(ctrl + 2 * sizeof(uint32_t), pin, pkcs11_pin_len);
@@ -376,17 +377,18 @@ CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
+	/* ABI: [session][old_pin_len][new_pin_len][old pin][new pin] */
 	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
 	offset = sizeof(uint32_t);
 
 	memcpy(ctrl + offset, &pkcs11_old_len, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
 
-	memcpy(ctrl + offset, old, pkcs11_old_len);
-	offset += pkcs11_old_len;
-
 	memcpy(ctrl + offset, &pkcs11_new_len, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
+
+	memcpy(ctrl + offset, old, pkcs11_old_len);
+	offset += pkcs11_old_len;
 
 	memcpy(ctrl + offset, new, pkcs11_new_len);
 
