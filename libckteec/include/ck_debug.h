@@ -26,6 +26,6 @@ char *ck_mecha_flag2str(CK_ULONG flags);
 const char *ckclass2str(CK_ULONG id);
 const char *cktype2str(CK_ULONG id, CK_ULONG class);
 
-const char *skscmd2str(unsigned int id);
+const char *ta_cmd2str(unsigned int id);
 
 #endif /*LIBCKTEEC_CK_DEBUG_H*/

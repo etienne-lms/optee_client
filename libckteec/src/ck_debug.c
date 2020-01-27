@@ -385,7 +385,7 @@ const char *ckm2str(CK_MECHANISM_TYPE id)
 	return unknown;
 }
 
-static struct ck2str skscmd2str_table[] = {
+static struct ck2str ta_cmd2str_table[] = {
 	CK2STR_ENTRY(PKCS11_CMD_PING),
 	CK2STR_ENTRY(PKCS11_CMD_SLOT_LIST),
 	CK2STR_ENTRY(PKCS11_CMD_SLOT_INFO),
@@ -409,15 +409,15 @@ static struct ck2str skscmd2str_table[] = {
 	CK2STR_ENTRY(PKCS11_CMD_ENCRYPT_FINAL),
 };
 
-const char *skscmd2str(unsigned int id)
+const char *ta_cmd2str(unsigned int id)
 {
 	static const char unknown[] = "<invalid-command-id>";
-	const int count = sizeof(skscmd2str_table) / sizeof(struct ck2str);
+	const int count = sizeof(ta_cmd2str_table) / sizeof(struct ck2str);
 	int n;
 
 	for (n = 0; n < count; n++) {
-		if (id == skscmd2str_table[n].id)
-			return skscmd2str_table[n].string;
+		if (id == ta_cmd2str_table[n].id)
+			return ta_cmd2str_table[n].string;
 	}
 
 	return unknown;
