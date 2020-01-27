@@ -52,7 +52,7 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 	memcpy(ctrl + sizeof(uint32_t), obj.buffer, obj.size);
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 SKS_CMD_IMPORT_OBJECT, ctrl, ctrl_size,
+				 PKCS11_CMD_IMPORT_OBJECT, ctrl, ctrl_size,
 				 NULL, 0, &key_handle, &key_handle_size);
 	if (rv)
 		goto bail;
@@ -71,7 +71,7 @@ CK_RV ck_destroy_object(CK_SESSION_HANDLE session,
 	uint32_t ctrl[2] = { (uint32_t)session, (uint32_t)obj };
 
 	return ck_invoke_ta(ck_session2sks_ctx(session),
-			    SKS_CMD_DESTROY_OBJECT, ctrl, sizeof(ctrl));
+			    PKCS11_CMD_DESTROY_OBJECT, ctrl, sizeof(ctrl));
 }
 
 CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
@@ -103,7 +103,7 @@ CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
 	memcpy(ctrl + 2 * sizeof(uint32_t), obj.buffer, obj.size);
 
 	rv = ck_invoke_ta(ck_session2sks_ctx(session), decrypt ?
-			  SKS_CMD_DECRYPT_INIT : SKS_CMD_ENCRYPT_INIT,
+			  PKCS11_CMD_DECRYPT_INIT : PKCS11_CMD_ENCRYPT_INIT,
 			  ctrl, ctrl_size);
 
 bail:
@@ -137,8 +137,8 @@ CK_RV ck_encdecrypt_update(CK_SESSION_HANDLE session,
 		out_size = *out_len;
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session), decrypt ?
-				 SKS_CMD_DECRYPT_UPDATE :
-				 SKS_CMD_ENCRYPT_UPDATE,
+				 PKCS11_CMD_DECRYPT_UPDATE :
+				 PKCS11_CMD_ENCRYPT_UPDATE,
 				 &ctrl, ctrl_size, in_buf, in_size,
 				 out_buf, out_len ? &out_size : NULL);
 
@@ -173,8 +173,8 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 		out_size = *out_len;
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session), decrypt ?
-				 SKS_CMD_DECRYPT_ONESHOT :
-				 SKS_CMD_ENCRYPT_ONESHOT,
+				 PKCS11_CMD_DECRYPT_ONESHOT :
+				 PKCS11_CMD_ENCRYPT_ONESHOT,
 				 &ctrl, ctrl_size, in_buf, in_size,
 				 out_buf, out_len ? &out_size : NULL);
 
@@ -205,7 +205,7 @@ CK_RV ck_encdecrypt_final(CK_SESSION_HANDLE session,
 		out_size = *out_len;
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session), decrypt ?
-				 SKS_CMD_DECRYPT_FINAL : SKS_CMD_ENCRYPT_FINAL,
+				 PKCS11_CMD_DECRYPT_FINAL : PKCS11_CMD_ENCRYPT_FINAL,
 				 &ctrl, ctrl_size, NULL, 0,
 				 out_buf, out_len ? &out_size : NULL);
 
@@ -251,7 +251,7 @@ CK_RV ck_generate_key(CK_SESSION_HANDLE session,
 	memcpy(ctrl + sizeof(uint32_t) + smecha.size, sattr.buffer, sattr.size);
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 SKS_CMD_GENERATE_SYMM_KEY, ctrl, ctrl_size,
+				 PKCS11_CMD_GENERATE_KEY, ctrl, ctrl_size,
 				 NULL, 0, &key_handle, &key_handle_size);
 	if (rv)
 		goto bail;
@@ -314,7 +314,7 @@ CK_RV ck_generate_key_pair(CK_SESSION_HANDLE session,
 		priv_sattr.buffer, priv_sattr.size);
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 SKS_CMD_GENERATE_KEY_PAIR, ctrl, ctrl_size,
+				 PKCS11_CMD_GENERATE_KEY_PAIR, ctrl, ctrl_size,
 				 NULL, 0, &key_handle[0], &key_handle_size);
 
 	if (key_handle_size != sizeof(key_handle))
@@ -362,7 +362,7 @@ CK_RV ck_signverify_init(CK_SESSION_HANDLE session,
 	memcpy(ctrl + 2 * sizeof(uint32_t), obj.buffer, obj.size);
 
 	rv = ck_invoke_ta(ck_session2sks_ctx(session), sign ?
-			  SKS_CMD_SIGN_INIT : SKS_CMD_VERIFY_INIT,
+			  PKCS11_CMD_SIGN_INIT : PKCS11_CMD_VERIFY_INIT,
 			  ctrl, ctrl_size);
 
 bail:
@@ -387,7 +387,7 @@ CK_RV ck_signverify_update(CK_SESSION_HANDLE session,
 	ctrl_size = sizeof(ctrl);
 
 	rv = ck_invoke_ta_in(ck_session2sks_ctx(session), sign ?
-			     SKS_CMD_SIGN_UPDATE : SKS_CMD_VERIFY_UPDATE,
+			     PKCS11_CMD_SIGN_UPDATE : PKCS11_CMD_VERIFY_UPDATE,
 			     &ctrl, ctrl_size, in_buf, in_size);
 
 	return rv;
@@ -419,12 +419,12 @@ CK_RV ck_signverify_oneshot(CK_SESSION_HANDLE session,
 
 	if (sign)
 		rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-					 SKS_CMD_SIGN_ONESHOT,
+					 PKCS11_CMD_SIGN_ONESHOT,
 					 &ctrl, ctrl_size, in_buf, in_size,
 					 sign_buf, &sign_size);
 	else
 		rv = ck_invoke_ta_in_in(ck_session2sks_ctx(session),
-					SKS_CMD_VERIFY_ONESHOT,
+					PKCS11_CMD_VERIFY_ONESHOT,
 					&ctrl, ctrl_size, in_buf, in_size,
 					sign_buf, sign_size);
 
@@ -451,12 +451,12 @@ CK_RV ck_signverify_final(CK_SESSION_HANDLE session,
 
 	if (sign)
 		rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-					 SKS_CMD_SIGN_FINAL, &ctrl, ctrl_size,
+					 PKCS11_CMD_SIGN_FINAL, &ctrl, ctrl_size,
 					 NULL, 0, sign_buf,
 					 sign_buf ? &sign_size : NULL);
 	else
 		rv = ck_invoke_ta_in(ck_session2sks_ctx(session),
-				  SKS_CMD_VERIFY_FINAL,
+				  PKCS11_CMD_VERIFY_FINAL,
 				  &ctrl, ctrl_size, sign_buf, sign_size);
 
 	if (sign && sign_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
@@ -491,7 +491,7 @@ CK_RV ck_find_objects_init(CK_SESSION_HANDLE session,
 	memcpy(ctrl + sizeof(uint32_t), obj.buffer, obj.size);
 
 	rv = ck_invoke_ta(ck_session2sks_ctx(session),
-			  SKS_CMD_FIND_OBJECTS_INIT, ctrl, ctrl_size);
+			  PKCS11_CMD_FIND_OBJECTS_INIT, ctrl, ctrl_size);
 
 bail:
 	release_serial_object(&obj);
@@ -517,7 +517,7 @@ CK_RV ck_find_objects(CK_SESSION_HANDLE session,
 		return CKR_HOST_MEMORY;
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 SKS_CMD_FIND_OBJECTS, ctrl, sizeof(ctrl),
+				 PKCS11_CMD_FIND_OBJECTS, ctrl, sizeof(ctrl),
 				 NULL, 0, handles, &handles_size);
 
 	if (rv)
@@ -542,7 +542,7 @@ CK_RV ck_find_objects_final(CK_SESSION_HANDLE session)
 	uint32_t ctrl[1] = { session };
 
 	rv = ck_invoke_ta(ck_session2sks_ctx(session),
-			  SKS_CMD_FIND_OBJECTS_FINAL, ctrl, sizeof(ctrl));
+			  PKCS11_CMD_FIND_OBJECTS_FINAL, ctrl, sizeof(ctrl));
 
 	return rv;
 }
@@ -588,7 +588,7 @@ CK_RV ck_derive_key(CK_SESSION_HANDLE session,
 			sattr.buffer, sattr.size);
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 SKS_CMD_DERIVE_KEY, ctrl, ctrl_size,
+				 PKCS11_CMD_DERIVE_KEY, ctrl, ctrl_size,
 				 NULL, 0, &key_handle, &key_handle_size);
 	if (rv)
 		goto bail;
@@ -641,7 +641,7 @@ CK_RV ck_get_attribute_value(CK_SESSION_HANDLE session,
 	memcpy(ctrl + sizeof(uint32_t) + handle_size, sattr.buffer, sattr.size);
 
 	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 SKS_CMD_GET_ATTRIBUTE_VALUE, ctrl, ctrl_size,
+				 PKCS11_CMD_GET_ATTRIBUTE_VALUE, ctrl, ctrl_size,
 				 NULL, 0, out, &out_size);
 	if (rv != CKR_OK && rv != CKR_BUFFER_TOO_SMALL)
 		goto bail;

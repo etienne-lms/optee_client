@@ -60,7 +60,7 @@ CK_RV sks_ck_slot_get_list(CK_BBOOL present,
 	if (!count)
 		return CKR_ARGUMENTS_BAD;
 
-	if (ck_invoke_ta_in_out(NULL, SKS_CMD_CK_SLOT_LIST, NULL, 0,
+	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_LIST, NULL, 0,
 				NULL, 0, NULL, &size) != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
 
@@ -76,7 +76,7 @@ CK_RV sks_ck_slot_get_list(CK_BBOOL present,
 	if (!shm)
 		return CKR_HOST_MEMORY;
 
-	if (ck_invoke_ta_in_out(NULL, SKS_CMD_CK_SLOT_LIST, NULL, 0,
+	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_LIST, NULL, 0,
 				NULL, 0, shm, NULL) != CKR_OK) {
 		rv = CKR_DEVICE_ERROR;
 		goto bail;
@@ -103,7 +103,7 @@ int sks_ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 	struct sks_slot_info sks_info;
 	size_t out_size = sizeof(sks_info);
 
-	if (ck_invoke_ta_in_out(NULL, SKS_CMD_CK_SLOT_INFO, &ctrl, sizeof(ctrl),
+	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_INFO, &ctrl, sizeof(ctrl),
 				NULL, 0, &sks_info, &out_size))
 		return CKR_DEVICE_ERROR;
 
@@ -128,7 +128,7 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 
 	ctrl[0] = (uint32_t)slot;
 	size = 0;
-	if (ck_invoke_ta_in_out(NULL, SKS_CMD_CK_TOKEN_INFO, ctrl, sizeof(ctrl),
+	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_TOKEN_INFO, ctrl, sizeof(ctrl),
 				NULL, 0, NULL, &size) != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
 
@@ -137,7 +137,7 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 		return CKR_HOST_MEMORY;
 
 	ctrl[0] = (uint32_t)slot;
-	rv = ck_invoke_ta_in_out(NULL, SKS_CMD_CK_TOKEN_INFO,
+	rv = ck_invoke_ta_in_out(NULL, PKCS11_CMD_TOKEN_INFO,
 				 ctrl, sizeof(ctrl), NULL, 0, shm, NULL);
 	if (rv)
 		goto bail;
@@ -186,7 +186,7 @@ CK_RV sks_ck_init_token(CK_SLOT_ID slot,
 
 	memcpy(ctrl + offset, label, 32 * sizeof(uint8_t));
 
-	return ck_invoke_ta(NULL, SKS_CMD_CK_INIT_TOKEN, ctrl, ctrl_size);
+	return ck_invoke_ta(NULL, PKCS11_CMD_INIT_TOKEN, ctrl, ctrl_size);
 }
 
 /**
@@ -207,7 +207,7 @@ CK_RV sks_ck_token_mechanism_ids(CK_SLOT_ID slot,
 			return CKR_HOST_MEMORY;
 	}
 
-	rv = ck_invoke_ta_in_out(NULL, SKS_CMD_CK_MECHANISM_IDS,
+	rv = ck_invoke_ta_in_out(NULL, PKCS11_CMD_MECHANISM_IDS,
 				 &ctrl, sizeof(ctrl),
 				 NULL, 0, outbuf, &outsize);
 
@@ -253,7 +253,7 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 	}
 
 	/* info is large enought, for sure */
-	rv = ck_invoke_ta_in_out(NULL, SKS_CMD_CK_MECHANISM_INFO,
+	rv = ck_invoke_ta_in_out(NULL, PKCS11_CMD_MECHANISM_INFO,
 				 &ctrl, sizeof(ctrl),
 				 NULL, 0, &outbuf, &outsize);
 	if (rv) {
@@ -289,9 +289,9 @@ CK_RV sks_ck_open_session(CK_SLOT_ID slot,
 	}
 
 	if (flags & CKF_RW_SESSION)
-		cmd = SKS_CMD_CK_OPEN_RW_SESSION;
+		cmd = PKCS11_CMD_OPEN_RW_SESSION;
 	else
-		cmd = SKS_CMD_CK_OPEN_RO_SESSION;
+		cmd = PKCS11_CMD_OPEN_RO_SESSION;
 
 	rv = ck_invoke_ta_in_out(NULL, cmd, &ctrl, sizeof(ctrl),
 				 NULL, 0, &handle, &out_sz);
@@ -307,7 +307,7 @@ CK_RV sks_ck_close_session(CK_SESSION_HANDLE session)
 {
 	uint32_t ctrl[1] = { (uint32_t)session };
 
-	return ck_invoke_ta(NULL, SKS_CMD_CK_CLOSE_SESSION,
+	return ck_invoke_ta(NULL, PKCS11_CMD_CLOSE_SESSION,
 			    &ctrl, sizeof(ctrl));
 }
 
@@ -318,7 +318,7 @@ CK_RV sks_ck_close_all_sessions(CK_SLOT_ID slot)
 {
 	uint32_t ctrl[1] = { (uint32_t)slot };
 
-	return ck_invoke_ta(NULL, SKS_CMD_CK_CLOSE_ALL_SESSIONS,
+	return ck_invoke_ta(NULL, PKCS11_CMD_CLOSE_ALL_SESSIONS,
 			    &ctrl, sizeof(ctrl));
 }
 
@@ -331,7 +331,7 @@ CK_RV sks_ck_get_session_info(CK_SESSION_HANDLE session,
 	uint32_t ctrl[1] = { (uint32_t)session };
 	size_t info_size = sizeof(CK_SESSION_INFO);
 
-	return ck_invoke_ta_in_out(NULL, SKS_CMD_CK_SESSION_INFO,
+	return ck_invoke_ta_in_out(NULL, PKCS11_CMD_SESSION_INFO,
 				   &ctrl, sizeof(ctrl),
 				   NULL, 0, info, &info_size);
 }
@@ -355,7 +355,7 @@ CK_RV sks_ck_init_pin(CK_SESSION_HANDLE session,
 	memcpy(ctrl + sizeof(uint32_t), &sks_pin_len, sizeof(uint32_t));
 	memcpy(ctrl + 2 * sizeof(uint32_t), pin, sks_pin_len);
 
-	return ck_invoke_ta(NULL, SKS_CMD_INIT_PIN, ctrl, ctrl_size);
+	return ck_invoke_ta(NULL, PKCS11_CMD_INIT_PIN, ctrl, ctrl_size);
 }
 
 /**
@@ -390,7 +390,7 @@ CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
 
 	memcpy(ctrl + offset, new, sks_new_len);
 
-	return ck_invoke_ta(NULL, SKS_CMD_SET_PIN, ctrl, ctrl_size);
+	return ck_invoke_ta(NULL, PKCS11_CMD_SET_PIN, ctrl, ctrl_size);
 }
 
 /**
@@ -415,7 +415,7 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 	memcpy(ctrl + 2 * sizeof(uint32_t), &sks_pin_len, sizeof(uint32_t));
 	memcpy(ctrl + 3 * sizeof(uint32_t), pin, sks_pin_len);
 
-	return ck_invoke_ta(NULL, SKS_CMD_LOGIN, ctrl, ctrl_size);
+	return ck_invoke_ta(NULL, PKCS11_CMD_LOGIN, ctrl, ctrl_size);
 }
 
 /**
@@ -433,5 +433,5 @@ CK_RV sks_ck_logout(CK_SESSION_HANDLE session)
 
 	memcpy(ctrl, &sks_session, sizeof(uint32_t));
 
-	return ck_invoke_ta(NULL, SKS_CMD_LOGOUT, ctrl, ctrl_size);
+	return ck_invoke_ta(NULL, PKCS11_CMD_LOGOUT, ctrl, ctrl_size);
 }
