@@ -24,16 +24,16 @@ add_compile_options (
 	-Wwrite-strings -fPIC
 )
 if(CFG_WERROR)
-    add_compile_options(-Werror)
+	add_compile_options(-Werror)
 endif(CFG_WERROR)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
 add_subdirectory (libteec)
 add_subdirectory (tee-supplicant)
 add_subdirectory (public)
-add_subdirectory (libsks)
+add_subdirectory (libckteec)

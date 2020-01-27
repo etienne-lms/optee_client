@@ -1,4 +1,4 @@
-project (optee-cryptoki-headers C)
+project (ckteec-headers C)
 
 FILE(GLOB INSTALL_HEADERS "*.h")
 

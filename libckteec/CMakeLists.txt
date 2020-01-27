@@ -1,6 +1,6 @@
-project(sks C)
+project(ckteec C)
 
-set(PROJECT_VERSION "1.0.0")
+set(PROJECT_VERSION "0.1.0")
 
 ################################################################################
 # Packages
@@ -29,9 +29,9 @@ set (SRC
 ################################################################################
 # Built library
 ################################################################################
-add_library (sks SHARED ${SRC})
+add_library (ckteec SHARED ${SRC})
 
-set_target_properties (sks PROPERTIES
+set_target_properties (ckteec PROPERTIES
 	VERSION ${PROJECT_VERSION}
 	SOVERSION ${PROJECT_NAME}
 )
@@ -39,7 +39,7 @@ set_target_properties (sks PROPERTIES
 ################################################################################
 # Flags always set
 ################################################################################
-target_compile_definitions (sks
+target_compile_definitions (ckteec
 	PRIVATE -D_GNU_SOURCE
 	PRIVATE -DBINARY_PREFIX="LT"
 )
@@ -51,7 +51,7 @@ target_compile_definitions (sks
 ################################################################################
 # Public and private header and library dependencies
 ################################################################################
-target_include_directories(sks
+target_include_directories(ckteec
 	PUBLIC include
 	PRIVATE src
 )
@@ -60,7 +60,7 @@ target_include_directories(teec
 	PUBLIC include
 )
 
-target_link_libraries (sks
+target_link_libraries (ckteec
 	PRIVATE pthread
 	PRIVATE teec
 	PRIVATE m
@@ -69,7 +69,7 @@ target_link_libraries (sks
 ################################################################################
 # Install targets
 ################################################################################
-install (TARGETS sks
+install (TARGETS ckteec
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
