@@ -108,7 +108,11 @@ CK_RV C_Initialize(CK_VOID_PTR init_args)
 	if (lib_inited)
 		return CKR_CRYPTOKI_ALREADY_INITIALIZED;
 
+	if (ta_invoke_init())
+		return CKR_FUNCTION_FAILED;
+
 	lib_inited = 1;
+
 	return CKR_OK;
 }
 

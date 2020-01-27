@@ -329,6 +329,33 @@ CK_RV ck_invoke_ta_in_in(struct sks_invoke *sks_ctx,
 			 NULL, NULL, DIR_NONE);
 }
 
+int ta_invoke_init(void)
+{
+	TEEC_Session *sess = teec_sess(get_invoke_context(NULL));
+	TEEC_Operation op;
+	uint32_t origin;
+	TEEC_Result res;
+	uint32_t ta_version[3];
+
+	if (!sess)
+		return -1;
+
+	memset(&op, 0, sizeof(op));
+	op.params[2].tmpref.buffer = ta_version;
+	op.params[2].tmpref.size = sizeof(ta_version);
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE,
+					 TEEC_MEMREF_TEMP_OUTPUT, TEEC_NONE);
+
+	res = TEEC_InvokeCommand(sess, PKCS11_CMD_PING, &op, &origin);
+	if (res == TEEC_SUCCESS &&
+	    ta_version[0] == PKCS11_TA_VERSION_MAJOR &&
+	    ta_version[1] == PKCS11_TA_VERSION_MINOR &&
+	    ta_version[2] == PKCS11_TA_VERSION_PATCH)
+		return 0;
+
+	return -1;
+}
+
 void sks_invoke_terminate(void)
 {
 	close_primary_context();
