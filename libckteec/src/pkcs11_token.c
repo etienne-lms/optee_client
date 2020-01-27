@@ -100,14 +100,14 @@ int sks_ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 {
 	uint32_t ctrl[1] = { slot };
 	CK_SLOT_INFO *ck_info = info;
-	struct sks_slot_info sks_info;
-	size_t out_size = sizeof(sks_info);
+	struct pkcs11_slot_info pkcs11_info;
+	size_t out_size = sizeof(pkcs11_info);
 
 	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_INFO, &ctrl, sizeof(ctrl),
-				NULL, 0, &sks_info, &out_size))
+				NULL, 0, &pkcs11_info, &out_size))
 		return CKR_DEVICE_ERROR;
 
-	if (sks2ck_slot_info(ck_info, &sks_info)) {
+	if (sks2ck_slot_info(ck_info, &pkcs11_info)) {
 		LOG_ERROR("unexpected bad token info structure\n");
 		return CKR_DEVICE_ERROR;
 	}
@@ -142,7 +142,7 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 	if (rv)
 		goto bail;
 
-	if (shm->size < sizeof(struct sks_token_info)) {
+	if (shm->size < sizeof(struct pkcs11_token_info)) {
 		LOG_ERROR("unexpected bad token info size\n");
 		rv = CKR_DEVICE_ERROR;
 		goto bail;
@@ -164,9 +164,9 @@ CK_RV sks_ck_init_token(CK_SLOT_ID slot,
 			CK_ULONG pin_len,
 			CK_UTF8CHAR_PTR label)
 {
-	uint32_t sks_slot = slot;
-	uint32_t sks_pin_len = pin_len;
-	size_t ctrl_size = 2 * sizeof(uint32_t) + sks_pin_len +
+	uint32_t pkcs11_slot = slot;
+	uint32_t pkcs11_pin_len = pin_len;
+	size_t ctrl_size = 2 * sizeof(uint32_t) + pkcs11_pin_len +
 			   32 * sizeof(uint8_t);
 	char *ctrl;
 	size_t offset;
@@ -175,14 +175,14 @@ CK_RV sks_ck_init_token(CK_SLOT_ID slot,
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &sks_slot, sizeof(uint32_t));
+	memcpy(ctrl, &pkcs11_slot, sizeof(uint32_t));
 	offset = sizeof(uint32_t);
 
-	memcpy(ctrl + offset, &sks_pin_len, sizeof(uint32_t));
+	memcpy(ctrl + offset, &pkcs11_pin_len, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
 
-	memcpy(ctrl + offset, pin, sks_pin_len);
-	offset += sks_pin_len;
+	memcpy(ctrl + offset, pin, pkcs11_pin_len);
+	offset += pkcs11_pin_len;
 
 	memcpy(ctrl + offset, label, 32 * sizeof(uint8_t));
 
@@ -242,7 +242,7 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 {
 	CK_RV rv;
 	uint32_t ctrl[2];
-	struct sks_mechanism_info outbuf;
+	struct pkcs11_mechanism_info outbuf;
 	size_t outsize = sizeof(outbuf);
 
 	ctrl[0] = (uint32_t)slot;
@@ -342,18 +342,18 @@ CK_RV sks_ck_get_session_info(CK_SESSION_HANDLE session,
 CK_RV sks_ck_init_pin(CK_SESSION_HANDLE session,
 		      CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
 {
-	uint32_t sks_session = session;
-	uint32_t sks_pin_len = pin_len;
-	size_t ctrl_size = 2 * sizeof(uint32_t) + sks_pin_len;
+	uint32_t pkcs11_session = session;
+	uint32_t pkcs11_pin_len = pin_len;
+	size_t ctrl_size = 2 * sizeof(uint32_t) + pkcs11_pin_len;
 	char *ctrl;
 
 	ctrl = malloc(ctrl_size);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &sks_session, sizeof(uint32_t));
-	memcpy(ctrl + sizeof(uint32_t), &sks_pin_len, sizeof(uint32_t));
-	memcpy(ctrl + 2 * sizeof(uint32_t), pin, sks_pin_len);
+	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
+	memcpy(ctrl + sizeof(uint32_t), &pkcs11_pin_len, sizeof(uint32_t));
+	memcpy(ctrl + 2 * sizeof(uint32_t), pin, pkcs11_pin_len);
 
 	return ck_invoke_ta(NULL, PKCS11_CMD_INIT_PIN, ctrl, ctrl_size);
 }
@@ -365,10 +365,10 @@ CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
 		     CK_UTF8CHAR_PTR old, CK_ULONG old_len,
 		     CK_UTF8CHAR_PTR new, CK_ULONG new_len)
 {
-	uint32_t sks_session = session;
-	uint32_t sks_old_len = old_len;
-	uint32_t sks_new_len = new_len;
-	size_t ctrl_size = 3 * sizeof(uint32_t) + sks_old_len + sks_new_len;
+	uint32_t pkcs11_session = session;
+	uint32_t pkcs11_old_len = old_len;
+	uint32_t pkcs11_new_len = new_len;
+	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_old_len + pkcs11_new_len;
 	char *ctrl;
 	size_t offset;
 
@@ -376,19 +376,19 @@ CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &sks_session, sizeof(uint32_t));
+	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
 	offset = sizeof(uint32_t);
 
-	memcpy(ctrl + offset, &sks_old_len, sizeof(uint32_t));
+	memcpy(ctrl + offset, &pkcs11_old_len, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
 
-	memcpy(ctrl + offset, old, sks_old_len);
-	offset += sks_old_len;
+	memcpy(ctrl + offset, old, pkcs11_old_len);
+	offset += pkcs11_old_len;
 
-	memcpy(ctrl + offset, &sks_new_len, sizeof(uint32_t));
+	memcpy(ctrl + offset, &pkcs11_new_len, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
 
-	memcpy(ctrl + offset, new, sks_new_len);
+	memcpy(ctrl + offset, new, pkcs11_new_len);
 
 	return ck_invoke_ta(NULL, PKCS11_CMD_SET_PIN, ctrl, ctrl_size);
 }
@@ -400,20 +400,20 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 		   CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
 
 {
-	uint32_t sks_session = session;
-	uint32_t sks_user = ck2sks_user_type(user_type);
-	uint32_t sks_pin_len = pin_len;
-	size_t ctrl_size = 3 * sizeof(uint32_t) + sks_pin_len;
+	uint32_t pkcs11_session = session;
+	uint32_t pkcs11_user = ck2sks_user_type(user_type);
+	uint32_t pkcs11_pin_len = pin_len;
+	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_pin_len;
 	char *ctrl;
 
 	ctrl = malloc(ctrl_size);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &sks_session, sizeof(uint32_t));
-	memcpy(ctrl + sizeof(uint32_t), &sks_user, sizeof(uint32_t));
-	memcpy(ctrl + 2 * sizeof(uint32_t), &sks_pin_len, sizeof(uint32_t));
-	memcpy(ctrl + 3 * sizeof(uint32_t), pin, sks_pin_len);
+	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
+	memcpy(ctrl + sizeof(uint32_t), &pkcs11_user, sizeof(uint32_t));
+	memcpy(ctrl + 2 * sizeof(uint32_t), &pkcs11_pin_len, sizeof(uint32_t));
+	memcpy(ctrl + 3 * sizeof(uint32_t), pin, pkcs11_pin_len);
 
 	return ck_invoke_ta(NULL, PKCS11_CMD_LOGIN, ctrl, ctrl_size);
 }
@@ -423,7 +423,7 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
  */
 CK_RV sks_ck_logout(CK_SESSION_HANDLE session)
 {
-	uint32_t sks_session = session;
+	uint32_t pkcs11_session = session;
 	size_t ctrl_size = sizeof(uint32_t);
 	char *ctrl;
 
@@ -431,7 +431,7 @@ CK_RV sks_ck_logout(CK_SESSION_HANDLE session)
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &sks_session, sizeof(uint32_t));
+	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
 
 	return ck_invoke_ta(NULL, PKCS11_CMD_LOGOUT, ctrl, ctrl_size);
 }

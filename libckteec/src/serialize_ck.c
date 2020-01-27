@@ -65,21 +65,21 @@ static CK_RV serialize_ulong_ck_ref(struct serializer *obj, void *ck_ref)
 {
 	struct ck_ref *ref = ck_ref;
 	CK_ULONG ck_value;
-	uint32_t sks_value;
+	uint32_t pkcs11_value;
 	CK_RV rv;
 
 	rv = serialize_ck_ulong(obj, ref->id);
 	if (rv)
 		return rv;
 
-	rv = serialize_ck_ulong(obj, sizeof(sks_value));
+	rv = serialize_ck_ulong(obj, sizeof(pkcs11_value));
 	if (rv)
 		return rv;
 
 	memcpy(&ck_value, ref->ptr, sizeof(CK_ULONG));
-	sks_value = ck_value;
+	pkcs11_value = ck_value;
 
-	rv = serialize_buffer(obj, &sks_value, sizeof(sks_value));
+	rv = serialize_buffer(obj, &pkcs11_value, sizeof(pkcs11_value));
 	if (rv)
 		return rv;
 
@@ -142,7 +142,7 @@ static CK_RV serialize_indirect_attribute(struct serializer *obj,
 	return rv;
 }
 
-static CK_RV deserialize_indirect_attribute(struct sks_attribute_head *obj,
+static CK_RV deserialize_indirect_attribute(struct pkcs11_attribute_head *obj,
 					    CK_ATTRIBUTE_PTR attribute)
 {
 	CK_ULONG count;
@@ -161,8 +161,8 @@ static CK_RV deserialize_indirect_attribute(struct sks_attribute_head *obj,
 	}
 
 	/*
-	 * deserialize_ck_attributes expects sks_attribute_head,
-	 * not sks_object_head, so we need to correct the pointer
+	 * deserialize_ck_attributes expects pkcs11_attribute_head,
+	 * not pkcs11_object_head, so we need to correct the pointer
 	 */
 	rv = deserialize_ck_attributes(obj->data, attr, count);
 	return rv;
@@ -184,19 +184,19 @@ static int ck_attr_is_ulong(CK_ATTRIBUTE_TYPE attribute_id)
 
 static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 {
-	uint32_t sks_id = PKCS11_UNDEFINED_ID;
-	uint32_t sks_size = 0;
-	uint32_t sks_data32;
-	void *sks_pdata;
-	int sks_pdata_alloced = 0;
+	uint32_t pkcs11_id = PKCS11_UNDEFINED_ID;
+	uint32_t pkcs11_size = 0;
+	uint32_t pkcs11_data32;
+	void *pkcs11_pdata;
+	int pkcs11_pdata_alloced = 0;
 	CK_ULONG ck_ulong = 0;		/* keep compiler happy */
 	CK_RV rv;
 	unsigned int n;
 	unsigned int m;
 
 	/* Expect only those from the identification table */
-	sks_id = ck2sks_attribute_type(attr->type);
-	if (sks_id == PKCS11_UNDEFINED_ID)
+	pkcs11_id = ck2sks_attribute_type(attr->type);
+	if (pkcs11_id == PKCS11_UNDEFINED_ID)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
 
 	if (ck_attr_is_ulong(attr->type)) {
@@ -209,15 +209,15 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 
 	switch (attr->type) {
 	case CKA_CLASS:
-		sks_data32 = ck2sks_object_class(ck_ulong);
-		sks_pdata = &sks_data32;
-		sks_size = sizeof(uint32_t);
+		pkcs11_data32 = ck2sks_object_class(ck_ulong);
+		pkcs11_pdata = &pkcs11_data32;
+		pkcs11_size = sizeof(uint32_t);
 		break;
 
 	case CKA_KEY_TYPE:
-		sks_data32 = ck2sks_key_type(ck_ulong);
-		sks_pdata = &sks_data32;
-		sks_size = sizeof(uint32_t);
+		pkcs11_data32 = ck2sks_key_type(ck_ulong);
+		pkcs11_pdata = &pkcs11_data32;
+		pkcs11_size = sizeof(uint32_t);
 		break;
 
 	case CKA_WRAP_TEMPLATE:
@@ -226,56 +226,56 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 
 	case CKA_ALLOWED_MECHANISMS:
 		n = attr->ulValueLen / sizeof(CK_ULONG);
-		sks_size = n * sizeof(uint32_t);
-		sks_pdata = malloc(sks_size);
-		if (!sks_pdata)
+		pkcs11_size = n * sizeof(uint32_t);
+		pkcs11_pdata = malloc(pkcs11_size);
+		if (!pkcs11_pdata)
 			return CKR_HOST_MEMORY;
 
-		sks_pdata_alloced = 1;
+		pkcs11_pdata_alloced = 1;
 
 		for (m = 0; m < n; m++) {
 			CK_MECHANISM_TYPE *type = attr->pValue;
 
-			sks_data32 = ck2sks_mechanism_type(type[m]);
-			if (sks_data32 == PKCS11_UNDEFINED_ID) {
-				free(sks_pdata);
+			pkcs11_data32 = ck2sks_mechanism_type(type[m]);
+			if (pkcs11_data32 == PKCS11_UNDEFINED_ID) {
+				free(pkcs11_pdata);
 				return CKR_MECHANISM_INVALID;
 			}
 
-			((uint32_t *)sks_pdata)[m] = sks_data32;
+			((uint32_t *)pkcs11_pdata)[m] = pkcs11_data32;
 		}
 		break;
 
 	/* Attributes which data value do not need conversion (aside ulong) */
 	default:
 		if (ck_attr_is_ulong(attr->type)) {
-			sks_data32 = (uint32_t)ck_ulong;
-			sks_pdata = &sks_data32;
-			sks_size = sizeof(uint32_t);
+			pkcs11_data32 = (uint32_t)ck_ulong;
+			pkcs11_pdata = &pkcs11_data32;
+			pkcs11_size = sizeof(uint32_t);
 		} else {
-			sks_pdata = attr->pValue;
-			sks_size = attr->ulValueLen;
+			pkcs11_pdata = attr->pValue;
+			pkcs11_size = attr->ulValueLen;
 		}
 		break;
 	}
 
-	rv = serialize_32b(obj, sks_id);
+	rv = serialize_32b(obj, pkcs11_id);
 	if (rv)
 		goto bail;
 
-	rv = serialize_32b(obj, sks_size);
+	rv = serialize_32b(obj, pkcs11_size);
 	if (rv)
 		goto bail;
 
-	rv = serialize_buffer(obj, sks_pdata, sks_size);
+	rv = serialize_buffer(obj, pkcs11_pdata, pkcs11_size);
 	if (rv)
 		goto bail;
 
 	obj->item_count++;
 
 bail:
-	if (sks_pdata_alloced)
-		free(sks_pdata);
+	if (pkcs11_pdata_alloced)
+		free(pkcs11_pdata);
 
 	return rv;
 }
@@ -284,22 +284,22 @@ bail:
 static CK_RV get_class(struct serializer *obj, struct ck_ref *ref)
 {
 	CK_ULONG ck_value;
-	uint32_t sks_value;
+	uint32_t pkcs11_value;
 
 	if (ref->len != sizeof(ck_value))
 		return CKR_TEMPLATE_INCONSISTENT;
 
 	memcpy(&ck_value, ref->ptr, sizeof(ck_value));
 
-	sks_value = ck2sks_object_class(ck_value);
+	pkcs11_value = ck2sks_object_class(ck_value);
 
-	if (sks_value == PKCS11_UNDEFINED_ID)
+	if (pkcs11_value == PKCS11_UNDEFINED_ID)
 		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
 
 	if (obj->object == PKCS11_UNDEFINED_ID)
-		obj->object = sks_value;
+		obj->object = pkcs11_value;
 
-	if (obj->object != sks_value) {
+	if (obj->object != pkcs11_value) {
 		printf("Attribute %s redefined\n", cka2str(ref->id));
 		return CKR_TEMPLATE_INCONSISTENT;
 	}
@@ -311,22 +311,22 @@ static CK_RV get_type(struct serializer *obj, struct ck_ref *ref,
 		      CK_ULONG class)
 {
 	CK_ULONG ck_value;
-	uint32_t sks_value;
+	uint32_t pkcs11_value;
 
 	if (ref->len != sizeof(ck_value))
 		return CKR_TEMPLATE_INCONSISTENT;
 
 	memcpy(&ck_value, ref->ptr, sizeof(ck_value));
 
-	sks_value = ck2sks_type_in_class(ck_value, class);
+	pkcs11_value = ck2sks_type_in_class(ck_value, class);
 
-	if (sks_value == PKCS11_UNDEFINED_ID)
+	if (pkcs11_value == PKCS11_UNDEFINED_ID)
 		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
 
 	if (obj->type == PKCS11_UNDEFINED_ID)
-		obj->type = sks_value;
+		obj->type = pkcs11_value;
 
-	if (obj->type != sks_value) {
+	if (obj->type != pkcs11_value) {
 		printf("Attribute %s redefined\n",
 			cktype2str(ck_value, class));
 		return CKR_TEMPLATE_INCONSISTENT;
@@ -488,11 +488,11 @@ out:
 	return rv;
 }
 
-static CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
+static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 				      CK_ATTRIBUTE_PTR out)
 {
 	CK_ULONG ck_ulong;
-	uint32_t sks_data32 = 0;
+	uint32_t pkcs11_data32 = 0;
 	size_t n;
 	CK_RV rv;
 
@@ -514,19 +514,19 @@ static CK_RV deserialize_ck_attribute(struct sks_attribute_head *in,
 		if (out->ulValueLen != sizeof(CK_ULONG))
 			return CKR_ATTRIBUTE_TYPE_INVALID;
 
-		memcpy(&sks_data32, in->data, sizeof(uint32_t));
+		memcpy(&pkcs11_data32, in->data, sizeof(uint32_t));
 	}
 
 	switch (out->type) {
 	case CKA_CLASS:
-		rv = sks2ck_object_class(&ck_ulong, sks_data32);
+		rv = sks2ck_object_class(&ck_ulong, pkcs11_data32);
 		if (rv)
 			return rv;
 		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
 		break;
 
 	case CKA_KEY_TYPE:
-		rv = sks2ck_key_type(&ck_ulong, sks_data32);
+		rv = sks2ck_key_type(&ck_ulong, pkcs11_data32);
 		if (rv)
 			return rv;
 		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
@@ -561,15 +561,15 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
 	uint8_t *curr_head = in;
 	size_t len;
 
-	curr_head += sizeof(struct sks_object_head);
+	curr_head += sizeof(struct pkcs11_object_head);
 
 #ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 #error Not supported.
 #endif
 
 	for (n = count; n > 0; n--, cur_attr++, curr_head += len) {
-		struct sks_attribute_head *cli_ref =
-			(struct sks_attribute_head *)(void *)curr_head;
+		struct pkcs11_attribute_head *cli_ref =
+			(struct pkcs11_attribute_head *)(void *)curr_head;
 
 		len = sizeof(*cli_ref);
 		/*
@@ -767,11 +767,11 @@ static CK_RV serialize_mecha_ulong_param(struct serializer *obj,
 					 CK_MECHANISM_PTR mecha)
 {
 	CK_RV rv;
-	uint32_t sks_data;
+	uint32_t pkcs11_data;
 	CK_ULONG ck_data;
 
 	memcpy(&ck_data, mecha->pParameter, mecha->ulParameterLen);
-	sks_data = ck_data;
+	pkcs11_data = ck_data;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -781,7 +781,7 @@ static CK_RV serialize_mecha_ulong_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	return serialize_32b(obj, sks_data);
+	return serialize_32b(obj, pkcs11_data);
 }
 
 static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
@@ -1080,7 +1080,7 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 	*(prefix2 + prefix_len + 1 + 4) = '\0';
 
 	for (; cur < (char *)end; cur += next) {
-		struct sks_attribute_head ref;
+		struct pkcs11_attribute_head ref;
 
 		memcpy(&ref, cur, sizeof(ref));
 		next = sizeof(ref) + ref.size;
@@ -1114,7 +1114,7 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 
 CK_RV serial_trace_attributes_from_head(char *prefix, void *ref)
 {
-	struct sks_object_head head;
+	struct pkcs11_object_head head;
 	char *pre;
 	CK_RV rv;
 

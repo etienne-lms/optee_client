@@ -15,7 +15,7 @@
 
 CK_RV init_serial_object(struct serializer *obj)
 {
-	struct sks_object_head head;
+	struct pkcs11_object_head head;
 
 	memset(obj, 0, sizeof(*obj));
 	obj->object = PKCS11_UNDEFINED_ID;
@@ -28,7 +28,7 @@ CK_RV init_serial_object(struct serializer *obj)
 
 void finalize_serial_object(struct serializer *obj)
 {
-	struct sks_object_head head;
+	struct pkcs11_object_head head;
 
 	memset(&head, 0xFF, sizeof(head));
 

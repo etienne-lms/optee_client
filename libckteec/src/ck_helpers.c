@@ -29,19 +29,19 @@
 	} while (0)
 
 static CK_RV sks2ck_all_slot_flags(CK_SLOT_INFO_PTR ck_info,
-				   struct sks_slot_info *sks_info)
+				   struct pkcs11_slot_info *pkcs11_info)
 {
 	CK_FLAGS ck_flag;
-	uint32_t sks_mask;
+	uint32_t pkcs11_mask;
 
 	ck_info->flags = 0;
-	for (sks_mask = 1; sks_mask; sks_mask <<= 1) {
+	for (pkcs11_mask = 1; pkcs11_mask; pkcs11_mask <<= 1) {
 
 		/* Skip sks token flags without a CK equilavent */
-		if (sks2ck_slot_flag(&ck_flag, sks_mask))
+		if (sks2ck_slot_flag(&ck_flag, pkcs11_mask))
 			continue;
 
-		if (sks_info->flags & sks_mask)
+		if (pkcs11_info->flags & pkcs11_mask)
 			ck_info->flags |= ck_flag;
 	}
 
@@ -49,37 +49,37 @@ static CK_RV sks2ck_all_slot_flags(CK_SLOT_INFO_PTR ck_info,
 }
 
 CK_RV sks2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
-			struct sks_slot_info *sks_info)
+			struct pkcs11_slot_info *pkcs11_info)
 {
 	CK_RV rv;
 
-	MEMCPY_FIELD(ck_info, sks_info, slotDescription);
-	MEMCPY_FIELD(ck_info, sks_info, manufacturerID);
+	MEMCPY_FIELD(ck_info, pkcs11_info, slotDescription);
+	MEMCPY_FIELD(ck_info, pkcs11_info, manufacturerID);
 
-	rv = sks2ck_all_slot_flags(ck_info, sks_info);
+	rv = sks2ck_all_slot_flags(ck_info, pkcs11_info);
 	if (rv)
 		return rv;
 
-	MEMCPY_VERSION(ck_info, sks_info, hardwareVersion);
-	MEMCPY_VERSION(ck_info, sks_info, firmwareVersion);
+	MEMCPY_VERSION(ck_info, pkcs11_info, hardwareVersion);
+	MEMCPY_VERSION(ck_info, pkcs11_info, firmwareVersion);
 
 	return CKR_OK;
 }
 
 static CK_RV sks2ck_all_token_flags(CK_TOKEN_INFO_PTR ck_info,
-				struct sks_token_info *sks_info)
+				struct pkcs11_token_info *pkcs11_info)
 {
 	CK_FLAGS ck_flag;
-	uint32_t sks_mask;
+	uint32_t pkcs11_mask;
 
 	ck_info->flags = 0;
-	for (sks_mask = 1; sks_mask; sks_mask <<= 1) {
+	for (pkcs11_mask = 1; pkcs11_mask; pkcs11_mask <<= 1) {
 
 		/* Skip sks token flags without a CK equilavent */
-		if (sks2ck_token_flag(&ck_flag, sks_mask))
+		if (sks2ck_token_flag(&ck_flag, pkcs11_mask))
 			continue;
 
-		if (sks_info->flags & sks_mask)
+		if (pkcs11_info->flags & pkcs11_mask)
 			ck_info->flags |= ck_flag;
 	}
 
@@ -87,32 +87,32 @@ static CK_RV sks2ck_all_token_flags(CK_TOKEN_INFO_PTR ck_info,
 }
 
 CK_RV sks2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
-			struct sks_token_info *sks_info)
+			struct pkcs11_token_info *pkcs11_info)
 {
 	CK_RV rv;
 
-	MEMCPY_FIELD(ck_info, sks_info, label);
-	MEMCPY_FIELD(ck_info, sks_info, manufacturerID);
-	MEMCPY_FIELD(ck_info, sks_info, model);
-	MEMCPY_FIELD(ck_info, sks_info, serialNumber);
+	MEMCPY_FIELD(ck_info, pkcs11_info, label);
+	MEMCPY_FIELD(ck_info, pkcs11_info, manufacturerID);
+	MEMCPY_FIELD(ck_info, pkcs11_info, model);
+	MEMCPY_FIELD(ck_info, pkcs11_info, serialNumber);
 
-	rv = sks2ck_all_token_flags(ck_info, sks_info);
+	rv = sks2ck_all_token_flags(ck_info, pkcs11_info);
 	if (rv)
 		return rv;
 
-	ck_info->ulMaxSessionCount = sks_info->ulMaxSessionCount;
-	ck_info->ulSessionCount = sks_info->ulSessionCount;
-	ck_info->ulMaxRwSessionCount = sks_info->ulMaxRwSessionCount;
-	ck_info->ulRwSessionCount = sks_info->ulRwSessionCount;
-	ck_info->ulMaxPinLen = sks_info->ulMaxPinLen;
-	ck_info->ulMinPinLen = sks_info->ulMinPinLen;
-	ck_info->ulTotalPublicMemory = sks_info->ulTotalPublicMemory;
-	ck_info->ulFreePublicMemory = sks_info->ulFreePublicMemory;
-	ck_info->ulTotalPrivateMemory = sks_info->ulTotalPrivateMemory;
-	ck_info->ulFreePrivateMemory = sks_info->ulFreePrivateMemory;
-	MEMCPY_VERSION(ck_info, sks_info, hardwareVersion);
-	MEMCPY_VERSION(ck_info, sks_info, firmwareVersion);
-	MEMCPY_FIELD(ck_info, sks_info, utcTime);
+	ck_info->ulMaxSessionCount = pkcs11_info->ulMaxSessionCount;
+	ck_info->ulSessionCount = pkcs11_info->ulSessionCount;
+	ck_info->ulMaxRwSessionCount = pkcs11_info->ulMaxRwSessionCount;
+	ck_info->ulRwSessionCount = pkcs11_info->ulRwSessionCount;
+	ck_info->ulMaxPinLen = pkcs11_info->ulMaxPinLen;
+	ck_info->ulMinPinLen = pkcs11_info->ulMinPinLen;
+	ck_info->ulTotalPublicMemory = pkcs11_info->ulTotalPublicMemory;
+	ck_info->ulFreePublicMemory = pkcs11_info->ulFreePublicMemory;
+	ck_info->ulTotalPrivateMemory = pkcs11_info->ulTotalPrivateMemory;
+	ck_info->ulFreePrivateMemory = pkcs11_info->ulFreePrivateMemory;
+	MEMCPY_VERSION(ck_info, pkcs11_info, hardwareVersion);
+	MEMCPY_VERSION(ck_info, pkcs11_info, firmwareVersion);
+	MEMCPY_FIELD(ck_info, pkcs11_info, utcTime);
 
 	return CKR_OK;
 }
@@ -166,7 +166,7 @@ struct ck2sks {
  * Use CK2SKS_BRACE() when specific PKCS11 identifier regarding Cryptoki CK label.
  */
 #define CK2SKS_ID(ck_id)		{ .ck = ck_id, .sks = PKCS11_ ## ck_id }
-#define CK2SKS_ID_BRACE(ck_id, sks_id)	{ .ck = ck_id, .sks = sks_id }
+#define CK2SKS_ID_BRACE(ck_id, pkcs11_id)	{ .ck = ck_id, .sks = pkcs11_id }
 
 #define SKS2CK(out, in, conv)		sks2ck(out, in, conv, ARRAY_SIZE(conv))
 #define CK2SKS(out, in, conv)		ck2sks(out, in, conv, ARRAY_SIZE(conv))
@@ -589,7 +589,7 @@ CK_RV sks2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst,
 /* Convert structure CK_MECHANIMS_INFO from PKCS11 to CK IDs (3 ulong fields) */
 CK_RV sks2ck_mechanism_info(CK_MECHANISM_INFO *info, void *src)
 {
-	struct sks_mechanism_info sks;
+	struct pkcs11_mechanism_info sks;
 	CK_FLAGS ck_flag;
 	uint32_t mask;
 	CK_RV rv;

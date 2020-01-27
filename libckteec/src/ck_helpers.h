@@ -38,15 +38,15 @@ DECLARE_CK2SKS_FUNCTIONS(rsa_pkcs_oaep_source_type,
 			 CK_RSA_PKCS_OAEP_SOURCE_TYPE);
 
 /*
- * Convert structure struct sks_token_info retreived from TA into a
+ * Convert structure struct pkcs11_token_info retreived from TA into a
  * cryptoki API compliant CK_TOKEN_INFO structure.
  *
- * struct sks_token_info is defined in the PKCS11 TA API.
+ * struct pkcs11_token_info is defined in the PKCS11 TA API.
  */
 CK_RV sks2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
-			struct sks_token_info *sks_info);
+			struct pkcs11_token_info *pkcs11_info);
 CK_RV sks2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
-			struct sks_slot_info *sks_info);
+			struct pkcs11_slot_info *pkcs11_info);
 
 /* Backward compat on deprecated functions */
 static inline CK_RV sks2ck_attribute_id(CK_ATTRIBUTE_TYPE *ck, uint32_t sks)
