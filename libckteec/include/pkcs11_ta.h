@@ -24,9 +24,6 @@
 #define PKCS11_FALSE				false
 #define PKCS11_TRUE				true
 
-// Temporary for compat. WIll be removed once fully upgraded from SKS to PKCS11
-#define SKS_UNDEFINED_ID			PKCS11_UNDEFINED_ID
-
 /*
  * Note on PKCS#11 TA commands ABI
  *
