@@ -1,4 +1,4 @@
-project (ckteec-headers C)
+project (libckteec-headers C)
 
 FILE(GLOB INSTALL_HEADERS "*.h")
 
