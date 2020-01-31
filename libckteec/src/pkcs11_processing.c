@@ -36,6 +36,9 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 	uint32_t session_handle = session;
 	size_t key_handle_size = sizeof(key_handle);
 
+	if (!handle || !attribs)
+		return CKR_ARGUMENTS_BAD;
+
 	rv = serialize_ck_attributes(&obj, attribs, count);
 	if (rv)
 		goto bail;
@@ -86,6 +89,9 @@ CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
 	char *ctrl = NULL;
 	size_t ctrl_size;
 
+	if (!mechanism)
+		return CKR_ARGUMENTS_BAD;
+
 	rv = serialize_ck_mecha_params(&obj, mechanism);
 	if (rv)
 		return rv;
@@ -127,6 +133,9 @@ CK_RV ck_encdecrypt_update(CK_SESSION_HANDLE session,
 	void *out_buf = out;
 	size_t out_size;
 
+	if ((out_len && *out_len && !out) || (in_len && !in))
+		return CKR_ARGUMENTS_BAD;
+
 	/* params = [session-handle] */
 	ctrl = session;
 	ctrl_size = sizeof(ctrl);
@@ -163,6 +172,9 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 	void *out_buf = out;
 	size_t out_size;
 
+	if ((out_len && *out_len && !out) || (in_len && !in))
+		return CKR_ARGUMENTS_BAD;
+
 	/* params = [session-handle] */
 	ctrl = session;
 	ctrl_size = sizeof(ctrl);
@@ -194,6 +206,9 @@ CK_RV ck_encdecrypt_final(CK_SESSION_HANDLE session,
 	size_t ctrl_size;
 	void *out_buf = out;
 	size_t out_size;
+
+	if (out_len && *out_len && !out)
+		return CKR_ARGUMENTS_BAD;
 
 	/* params = [session-handle] */
 	ctrl = session;
@@ -229,6 +244,9 @@ CK_RV ck_generate_key(CK_SESSION_HANDLE session,
 	size_t ctrl_size;
 	uint32_t key_handle;
 	size_t key_handle_size = sizeof(key_handle);
+
+	if (!handle || (count && !attribs))
+		return CKR_ARGUMENTS_BAD;
 
 	rv = serialize_ck_mecha_params(&smecha, mechanism);
 	if (rv)
@@ -283,6 +301,9 @@ CK_RV ck_generate_key_pair(CK_SESSION_HANDLE session,
 	size_t ctrl_size;
 	uint32_t key_handle[2];
 	size_t key_handle_size = sizeof(key_handle);
+
+	if (!(pub_key && priv_key && pub_attribs && priv_attribs && mechanism))
+		return CKR_ARGUMENTS_BAD;
 
 	rv = serialize_ck_mecha_params(&smecha, mechanism);
 	if (rv)
@@ -345,6 +366,9 @@ CK_RV ck_signverify_init(CK_SESSION_HANDLE session,
 	char *ctrl = NULL;
 	size_t ctrl_size;
 
+	if (!mechanism)
+		return CKR_ARGUMENTS_BAD;
+
 	rv = serialize_ck_mecha_params(&obj, mechanism);
 	if (rv)
 		return rv;
@@ -382,6 +406,9 @@ CK_RV ck_signverify_update(CK_SESSION_HANDLE session,
 	void *in_buf = in;
 	size_t in_size = in_len;
 
+	if (in_len && !in)
+		return CKR_ARGUMENTS_BAD;
+
 	/* params = [session-handle] */
 	ctrl = session;
 	ctrl_size = sizeof(ctrl);
@@ -407,6 +434,9 @@ CK_RV ck_signverify_oneshot(CK_SESSION_HANDLE session,
 	size_t in_size = in_len;
 	void *sign_buf = sign_ref;
 	size_t sign_size;
+
+	if ((in_size && !in) || (sign_len && *sign_len && !sign_ref))
+		return CKR_ARGUMENTS_BAD;
 
 	/* params = [session-handle] */
 	ctrl = session;
@@ -445,6 +475,10 @@ CK_RV ck_signverify_final(CK_SESSION_HANDLE session,
 	void *sign_buf = sign_ref;
 	size_t sign_size = sign_len ? *sign_len : 0;
 
+	if (sign_len && *sign_len && !sign_ref)
+		return CKR_ARGUMENTS_BAD;
+
+
 	/* params = [session-handle] */
 	ctrl = session;
 	ctrl_size = sizeof(ctrl);
@@ -474,6 +508,9 @@ CK_RV ck_find_objects_init(CK_SESSION_HANDLE session,
 	struct serializer obj;
 	char *ctrl;
 	size_t ctrl_size;
+
+	if (count && !attribs)
+		return CKR_ARGUMENTS_BAD;
 
 	rv = serialize_ck_attributes(&obj, attribs, count);
 	if (rv)
@@ -511,6 +548,9 @@ CK_RV ck_find_objects(CK_SESSION_HANDLE session,
 	size_t handles_size = max_count * sizeof(uint32_t);
 	CK_ULONG n;
 	CK_ULONG last;
+
+	if (!count || (*count && !obj))
+		return CKR_ARGUMENTS_BAD;
 
 	handles = malloc(handles_size);
 	if (!handles)
@@ -564,6 +604,9 @@ CK_RV ck_derive_key(CK_SESSION_HANDLE session,
 	uint32_t key_handle;
 	size_t key_handle_size = sizeof(key_handle);
 
+	if (!mechanism || (count && !attribs) || !out_handle)
+		return CKR_ARGUMENTS_BAD;
+
 	rv = serialize_ck_mecha_params(&smecha, mechanism);
 	if (rv)
 		return rv;
@@ -616,6 +659,9 @@ CK_RV ck_get_attribute_value(CK_SESSION_HANDLE session,
 	size_t out_size;
 	uint32_t obj_handle = obj;
 	size_t handle_size = sizeof(obj_handle);
+
+	if (count && !attribs)
+		return CKR_ARGUMENTS_BAD;
 
 	rv = serialize_ck_attributes(&sattr, attribs, count);
 	if (rv)

@@ -34,6 +34,9 @@ int sks_ck_get_info(CK_INFO_PTR info)
 	const char lib_description[] = "OP-TEE PKCS11 Cryptoki client library";
 	const CK_VERSION lib_version = { 0, 0 };
 
+	if (!info)
+		return CKR_ARGUMENTS_BAD;
+
 	info->cryptokiVersion = ck_version;
 	PADDED_STRING_COPY(info->manufacturerID, manuf_id);
 	info->flags = flags;
@@ -57,7 +60,7 @@ CK_RV sks_ck_slot_get_list(CK_BBOOL present,
 	/* Discard present: all are present */
 	(void)present;
 
-	if (!count)
+	if (!count || (*count && !slots))
 		return CKR_ARGUMENTS_BAD;
 
 	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_LIST, NULL, 0,
@@ -103,6 +106,9 @@ int sks_ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 	struct pkcs11_slot_info pkcs11_info;
 	size_t out_size = sizeof(pkcs11_info);
 
+	if (!info)
+		return CKR_ARGUMENTS_BAD;
+
 	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_INFO, &ctrl, sizeof(ctrl),
 				NULL, 0, &pkcs11_info, &out_size))
 		return CKR_DEVICE_ERROR;
@@ -125,6 +131,9 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 	TEEC_SharedMemory *shm;
 	size_t size;
 	CK_RV rv = CKR_GENERAL_ERROR;
+
+	if (!info)
+		return CKR_ARGUMENTS_BAD;
 
 	ctrl[0] = (uint32_t)slot;
 	size = 0;
@@ -171,6 +180,9 @@ CK_RV sks_ck_init_token(CK_SLOT_ID slot,
 	char *ctrl;
 	size_t offset;
 
+	if (!pin || !label)
+		return CKR_ARGUMENTS_BAD;
+
 	ctrl = malloc(ctrl_size);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
@@ -200,6 +212,9 @@ CK_RV sks_ck_token_mechanism_ids(CK_SLOT_ID slot,
 	size_t outsize = *count * sizeof(uint32_t);
 	void *outbuf = NULL;
 	CK_RV rv;
+
+	if (!count || (*count && !mechanisms))
+		return CKR_ARGUMENTS_BAD;
 
 	if (mechanisms) {
 		outbuf = malloc(outsize);
@@ -245,6 +260,9 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 	struct pkcs11_mechanism_info outbuf;
 	size_t outsize = sizeof(outbuf);
 
+	if (!info)
+		return CKR_ARGUMENTS_BAD;
+
 	ctrl[0] = (uint32_t)slot;
 	ctrl[1] = ck2ta_mechanism_type(type);
 	if (ctrl[1] == PKCS11_UNDEFINED_ID) {
@@ -282,6 +300,14 @@ CK_RV sks_ck_open_session(CK_SLOT_ID slot,
 	uint32_t handle;
 	size_t out_sz = sizeof(handle);
 	CK_RV rv;
+
+	if ((flags & ~(CKF_RW_SESSION | CKF_SERIAL_SESSION)) ||
+	    !session)
+		return CKR_ARGUMENTS_BAD;
+
+	/* Specific mandated flag */
+	if (!(flags & CKF_SERIAL_SESSION))
+		return CKR_SESSION_PARALLEL_NOT_SUPPORTED;
 
 	if (cookie || callback) {
 		LOG_ERROR("C_OpenSession does not handle callback yet\n");
@@ -331,6 +357,9 @@ CK_RV sks_ck_get_session_info(CK_SESSION_HANDLE session,
 	uint32_t ctrl[1] = { (uint32_t)session };
 	size_t info_size = sizeof(CK_SESSION_INFO);
 
+	if (!info)
+		return CKR_ARGUMENTS_BAD;
+
 	return ck_invoke_ta_in_out(NULL, PKCS11_CMD_SESSION_INFO,
 				   &ctrl, sizeof(ctrl),
 				   NULL, 0, info, &info_size);
@@ -346,6 +375,9 @@ CK_RV sks_ck_init_pin(CK_SESSION_HANDLE session,
 	uint32_t pkcs11_pin_len = pin_len;
 	size_t ctrl_size = 2 * sizeof(uint32_t) + pkcs11_pin_len;
 	char *ctrl;
+
+	if (!pin)
+		return CKR_ARGUMENTS_BAD;
 
 	ctrl = malloc(ctrl_size);
 	if (!ctrl)
@@ -372,6 +404,9 @@ CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
 	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_old_len + pkcs11_new_len;
 	char *ctrl;
 	size_t offset;
+
+	if (!old || !new)
+		return CKR_ARGUMENTS_BAD;
 
 	ctrl = malloc(ctrl_size);
 	if (!ctrl)
@@ -407,6 +442,9 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 	uint32_t pkcs11_pin_len = pin_len;
 	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_pin_len;
 	char *ctrl;
+
+	if (!pin)
+		return CKR_ARGUMENTS_BAD;
 
 	ctrl = malloc(ctrl_size);
 	if (!ctrl)

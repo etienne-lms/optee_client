@@ -366,13 +366,6 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (flags & ~(CKF_RW_SESSION | CKF_SERIAL_SESSION))
-		return CKR_ARGUMENTS_BAD;
-
-	/* Specific mandated flag */
-	if (!(flags & CKF_SERIAL_SESSION))
-		return CKR_SESSION_PARALLEL_NOT_SUPPORTED;
-
 	rv = sks_ck_open_session(slotID, flags, pApplication, Notify, phSession);
 
 	switch (rv) {
@@ -466,9 +459,6 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,
 
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	if (!pInfo)
-		return CKR_ARGUMENTS_BAD;
 
 	rv = sks_ck_get_session_info(hSession, pInfo);
 
