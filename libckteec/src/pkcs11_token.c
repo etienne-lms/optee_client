@@ -24,9 +24,9 @@
 	} while (0)
 
 /**
- * sks_ck_get_info - implementation of C_GetInfo
+ * ck_get_info - implementation of C_GetInfo
  */
-int sks_ck_get_info(CK_INFO_PTR info)
+int ck_get_info(CK_INFO_PTR info)
 {
 	const CK_VERSION ck_version = { 2, 40 };
 	const char manuf_id[] = PKCS11_SLOT_MANUFACTURER; // TODO slot?
@@ -47,10 +47,10 @@ int sks_ck_get_info(CK_INFO_PTR info)
 }
 
 /**
- * slot_get_info - implementation of C_GetSlotList
+ * ck_slot_get_list - Wrap C_GetSlotList into PKCS11_CMD_SLOT_LIST
  */
-CK_RV sks_ck_slot_get_list(CK_BBOOL present,
-			   CK_SLOT_ID_PTR slots, CK_ULONG_PTR count)
+CK_RV ck_slot_get_list(CK_BBOOL present,
+		       CK_SLOT_ID_PTR slots, CK_ULONG_PTR count)
 {
 	TEEC_SharedMemory *shm;
 	size_t size = 0;
@@ -97,9 +97,9 @@ bail:
 }
 
 /**
- * slot_get_info - implementation of C_GetSlotInfo
+ * ck_slot_get_info - Wrap C_GetSlotInfo into PKCS11_CMD_SLOT_INFO
  */
-int sks_ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
+int ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 {
 	uint32_t ctrl[1] = { slot };
 	CK_SLOT_INFO *ck_info = info;
@@ -122,9 +122,9 @@ int sks_ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 }
 
 /**
- * slot_get_info - implementation of C_GetTokenInfo
+ * ck_token_get_info - Wrap C_GetTokenInfo into PKCS11_CMD_TOKEN_INFO
  */
-CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
+CK_RV ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 {
 	uint32_t ctrl[1] = { slot };
 	CK_TOKEN_INFO *ck_info = info;
@@ -166,12 +166,10 @@ bail:
 }
 
 /**
- * sks_ck_init_token - implementation of C_InitToken
+ * ck_init_token - Wrap C_InitToken into PKCS11_CMD_INIT_TOKEN
  */
-CK_RV sks_ck_init_token(CK_SLOT_ID slot,
-			CK_UTF8CHAR_PTR pin,
-			CK_ULONG pin_len,
-			CK_UTF8CHAR_PTR label)
+CK_RV ck_init_token(CK_SLOT_ID slot, CK_UTF8CHAR_PTR pin,
+		    CK_ULONG pin_len, CK_UTF8CHAR_PTR label)
 {
 	uint32_t pkcs11_slot = slot;
 	uint32_t pkcs11_pin_len = pin_len;
@@ -202,11 +200,11 @@ CK_RV sks_ck_init_token(CK_SLOT_ID slot,
 }
 
 /**
- * sks_ck_token_mechanism_ids - implementation of C_GetMechanismList
+ * ck_token_mechanism_ids - Wrap C_GetMechanismList
  */
-CK_RV sks_ck_token_mechanism_ids(CK_SLOT_ID slot,
-				 CK_MECHANISM_TYPE_PTR mechanisms,
-				 CK_ULONG_PTR count)
+CK_RV ck_token_mechanism_ids(CK_SLOT_ID slot,
+			     CK_MECHANISM_TYPE_PTR mechanisms,
+			     CK_ULONG_PTR count)
 {
 	uint32_t ctrl[1] = { slot };
 	size_t outsize = *count * sizeof(uint32_t);
@@ -249,11 +247,11 @@ bail:
 }
 
 /**
- * sks_ck_token_mechanism_info - implementation of C_GetMechanismInfo
+ * ck_token_mechanism_info - Wrap C_GetMechanismInfo into command MECHANISM_INFO
  */
-CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
-				  CK_MECHANISM_TYPE type,
-				  CK_MECHANISM_INFO_PTR info)
+CK_RV ck_token_mechanism_info(CK_SLOT_ID slot,
+			      CK_MECHANISM_TYPE type,
+			      CK_MECHANISM_INFO_PTR info)
 {
 	CK_RV rv;
 	uint32_t ctrl[2];
@@ -287,13 +285,11 @@ CK_RV sks_ck_token_mechanism_info(CK_SLOT_ID slot,
 }
 
 /**
- * sks_ck_open_session - implementation of C_OpenSession
+ * ck_open_session - Wrap C_OpenSession into PKCS11_CMD_OPEN_{RW|RO}_SESSION
  */
-CK_RV sks_ck_open_session(CK_SLOT_ID slot,
-		          CK_FLAGS flags,
-		          CK_VOID_PTR cookie,
-		          CK_NOTIFY callback,
-		          CK_SESSION_HANDLE_PTR session)
+CK_RV ck_open_session(CK_SLOT_ID slot, CK_FLAGS flags,
+		      CK_VOID_PTR cookie, CK_NOTIFY callback,
+		      CK_SESSION_HANDLE_PTR session)
 {
 	uint32_t ctrl[1] = { slot };
 	unsigned long cmd;
@@ -329,7 +325,10 @@ CK_RV sks_ck_open_session(CK_SLOT_ID slot,
 	return CKR_OK;
 }
 
-CK_RV sks_ck_close_session(CK_SESSION_HANDLE session)
+/**
+ * ck_open_session - Wrap C_OpenSession into PKCS11_CMD_CLOSE_SESSION
+ */
+CK_RV ck_close_session(CK_SESSION_HANDLE session)
 {
 	uint32_t ctrl[1] = { (uint32_t)session };
 
@@ -338,9 +337,9 @@ CK_RV sks_ck_close_session(CK_SESSION_HANDLE session)
 }
 
 /**
- * sks_ck_close_all_sessions - implementation of C_CloseAllSessions
+ * ck_close_all_sessions - Wrap C_CloseAllSessions into TA command
  */
-CK_RV sks_ck_close_all_sessions(CK_SLOT_ID slot)
+CK_RV ck_close_all_sessions(CK_SLOT_ID slot)
 {
 	uint32_t ctrl[1] = { (uint32_t)slot };
 
@@ -349,10 +348,10 @@ CK_RV sks_ck_close_all_sessions(CK_SLOT_ID slot)
 }
 
 /**
- * sks_ck_get_session_info - implementation of C_GetSessionInfo
+ * ck_get_session_info - Wrap C_GetSessionInfo into PKCS11_CMD_SESSION_INFO
  */
-CK_RV sks_ck_get_session_info(CK_SESSION_HANDLE session,
-			      CK_SESSION_INFO_PTR info)
+CK_RV ck_get_session_info(CK_SESSION_HANDLE session,
+			  CK_SESSION_INFO_PTR info)
 {
 	uint32_t ctrl[1] = { (uint32_t)session };
 	size_t info_size = sizeof(CK_SESSION_INFO);
@@ -366,10 +365,10 @@ CK_RV sks_ck_get_session_info(CK_SESSION_HANDLE session,
 }
 
 /**
- * sks_ck_init_pin - implementation of C_InitPIN
+ * ck_init_pin - Wrap C_InitPIN into PKCS11_CMD_INIT_PIN
  */
-CK_RV sks_ck_init_pin(CK_SESSION_HANDLE session,
-		      CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
+CK_RV ck_init_pin(CK_SESSION_HANDLE session,
+		  CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
 {
 	uint32_t pkcs11_session = session;
 	uint32_t pkcs11_pin_len = pin_len;
@@ -392,11 +391,11 @@ CK_RV sks_ck_init_pin(CK_SESSION_HANDLE session,
 }
 
 /**
- * sks_ck_set_pin - implementation of C_SetPIN
+ * ck_set_pin - Wrap C_SetPIN into PKCS11_CMD_SET_PIN
  */
-CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
-		     CK_UTF8CHAR_PTR old, CK_ULONG old_len,
-		     CK_UTF8CHAR_PTR new, CK_ULONG new_len)
+CK_RV ck_set_pin(CK_SESSION_HANDLE session,
+		 CK_UTF8CHAR_PTR old, CK_ULONG old_len,
+		 CK_UTF8CHAR_PTR new, CK_ULONG new_len)
 {
 	uint32_t pkcs11_session = session;
 	uint32_t pkcs11_old_len = old_len;
@@ -431,10 +430,10 @@ CK_RV sks_ck_set_pin(CK_SESSION_HANDLE session,
 }
 
 /**
- * sks_ck_login - implementation of C_Login
+ * ck_login - Wrap C_Login into PKCS11_CMD_LOGIN
  */
-CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
-		   CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
+CK_RV ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
+	       CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
 
 {
 	uint32_t pkcs11_session = session;
@@ -459,9 +458,9 @@ CK_RV sks_ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 }
 
 /**
- * sks_ck_logout - implementation of C_Logout
+ * ck_logout - Wrap C_Logout into PKCS11_CMD_LOGOUT
  */
-CK_RV sks_ck_logout(CK_SESSION_HANDLE session)
+CK_RV ck_logout(CK_SESSION_HANDLE session)
 {
 	uint32_t pkcs11_session = session;
 	size_t ctrl_size = sizeof(uint32_t);

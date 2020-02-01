@@ -131,7 +131,7 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_get_info(pInfo);
+	rv = ck_get_info(pInfo);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -169,7 +169,7 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_slot_get_list(tokenPresent, pSlotList, pulCount);
+	rv = ck_slot_get_list(tokenPresent, pSlotList, pulCount);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -196,7 +196,7 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_slot_get_info(slotID, pInfo);
+	rv = ck_slot_get_info(slotID, pInfo);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -226,7 +226,7 @@ CK_RV C_InitToken(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_init_token(slotID, pPin, ulPinLen, pLabel);
+	rv = ck_init_token(slotID, pPin, ulPinLen, pLabel);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -263,7 +263,7 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_token_get_info(slotID, pInfo);
+	rv = ck_token_get_info(slotID, pInfo);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -296,7 +296,7 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_token_mechanism_ids(slotID, pMechanismList, pulCount);
+	rv = ck_token_mechanism_ids(slotID, pMechanismList, pulCount);
 
 	switch (rv) {
 	case CKR_BUFFER_TOO_SMALL:
@@ -330,7 +330,7 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_token_mechanism_info(slotID, type, pInfo);
+	rv = ck_token_mechanism_info(slotID, type, pInfo);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -366,7 +366,7 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_open_session(slotID, flags, pApplication, Notify, phSession);
+	rv = ck_open_session(slotID, flags, pApplication, Notify, phSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -401,7 +401,7 @@ CK_RV C_CloseSession(CK_SESSION_HANDLE hSession)
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_close_session(hSession);
+	rv = ck_close_session(hSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -430,7 +430,7 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID)
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_close_all_sessions(slotID);
+	rv = ck_close_all_sessions(slotID);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -460,7 +460,7 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_get_session_info(hSession, pInfo);
+	rv = ck_get_session_info(hSession, pInfo);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -492,7 +492,7 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_init_pin(hSession, pPin, ulPinLen);
+	rv = ck_init_pin(hSession, pPin, ulPinLen);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -532,7 +532,7 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_set_pin(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
+	rv = ck_set_pin(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -574,7 +574,7 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_login(hSession, userType, pPin, ulPinLen);
+	rv = ck_login(hSession, userType, pPin, ulPinLen);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -614,7 +614,7 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession)
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = sks_ck_logout(hSession);
+	rv = ck_logout(hSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
