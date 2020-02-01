@@ -462,13 +462,35 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID)
 CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,
 		       CK_SESSION_INFO_PTR pInfo)
 {
+	CK_RV rv;
+
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	if (!pInfo)
 		return CKR_ARGUMENTS_BAD;
 
-	return sks_ck_get_session_info(hSession, pInfo);
+	rv = sks_ck_get_session_info(hSession, pInfo);
+
+	switch (rv) {
+	case CKR_CRYPTOKI_NOT_INITIALIZED:
+	case CKR_DEVICE_ERROR:
+	case CKR_DEVICE_MEMORY:
+	case CKR_DEVICE_REMOVED:
+	case CKR_FUNCTION_FAILED:
+	case CKR_GENERAL_ERROR:
+	case CKR_HOST_MEMORY:
+	case CKR_OK:
+	case CKR_SESSION_CLOSED:
+	case CKR_SESSION_HANDLE_INVALID:
+	case CKR_ARGUMENTS_BAD:
+		break;
+	default:
+		assert(!rv);
+		break;
+	}
+
+	return rv;
 }
 
 CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
