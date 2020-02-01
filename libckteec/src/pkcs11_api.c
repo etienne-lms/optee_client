@@ -123,13 +123,30 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 
 CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 {
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	if (!pInfo)
 		return CKR_ARGUMENTS_BAD;
 
-	return sks_ck_get_info(pInfo);
+	if (!lib_inited)
+		return CKR_CRYPTOKI_NOT_INITIALIZED;
+
+	rv = sks_ck_get_info(pInfo);
+
+	switch (rv) {
+	case CKR_ARGUMENTS_BAD:
+	case CKR_CRYPTOKI_NOT_INITIALIZED:
+	case CKR_FUNCTION_FAILED:
+	case CKR_GENERAL_ERROR:
+	case CKR_HOST_MEMORY:
+	case CKR_OK:
+		break;
+	default:
+		assert(!rv);
+		break;
+	}
+
+	return rv;
 }
 
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
