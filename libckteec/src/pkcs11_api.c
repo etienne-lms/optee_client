@@ -182,6 +182,7 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -209,6 +210,7 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -247,6 +249,7 @@ CK_RV C_InitToken(CK_SLOT_ID slotID,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -278,6 +281,7 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -311,6 +315,7 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -344,6 +349,7 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -389,6 +395,7 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -417,6 +424,7 @@ CK_RV C_CloseSession(CK_SESSION_HANDLE hSession)
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -445,6 +453,7 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID)
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -494,6 +503,7 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -535,6 +545,7 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -578,6 +589,7 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -607,6 +619,7 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession)
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -682,6 +695,7 @@ CK_RV C_CreateObject(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -734,6 +748,7 @@ CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -784,6 +799,7 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -835,6 +851,7 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -870,6 +887,7 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -899,6 +917,7 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession)
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -939,6 +958,7 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -978,6 +998,7 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1017,6 +1038,7 @@ CK_RV C_EncryptUpdate(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1053,6 +1075,7 @@ CK_RV C_EncryptFinal(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1094,6 +1117,7 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1135,6 +1159,7 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1176,6 +1201,7 @@ CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1213,11 +1239,11 @@ CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
 }
-
 
 CK_RV C_DigestInit(CK_SESSION_HANDLE hSession,
 		   CK_MECHANISM_PTR pMechanism)
@@ -1325,6 +1351,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1367,6 +1394,7 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1402,6 +1430,7 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1440,6 +1469,7 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1510,6 +1540,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1552,6 +1583,7 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1586,6 +1618,7 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1623,6 +1656,7 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1695,7 +1729,6 @@ CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE hSession,
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
-
 
 CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE hSession,
 			  CK_BYTE_PTR pPart,
@@ -1776,6 +1809,7 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1848,6 +1882,7 @@ bail:
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
@@ -1945,6 +1980,7 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession,
 		break;
 	default:
 		assert(!rv);
+		break;
 	}
 
 	return rv;
