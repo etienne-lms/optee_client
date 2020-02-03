@@ -53,10 +53,10 @@ CK_RV ck_get_info(CK_INFO_PTR info)
 CK_RV ck_slot_get_list(CK_BBOOL present,
 		       CK_SLOT_ID_PTR slots, CK_ULONG_PTR count)
 {
-	TEEC_SharedMemory *shm;
-	size_t size = 0;
 	CK_RV rv = CKR_GENERAL_ERROR;
-	unsigned int n;
+	TEEC_SharedMemory *shm = NULL;
+	size_t size = 0;
+	unsigned int n = 0;
 
 	/* Discard present: all are present */
 	(void)present;
@@ -64,24 +64,43 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 	if (!count || (*count && !slots))
 		return CKR_ARGUMENTS_BAD;
 
-	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_LIST, NULL, 0,
-				NULL, 0, NULL, &size) != CKR_BUFFER_TOO_SMALL)
+	/*
+	 * Invoke first time to get slot ID table size
+	 * Shm io2: (out) [slot-list]
+	 */
+	shm = ckteec_alloc_shm(0, CKTEEC_SHM_OUT);
+	if (!shm)
+		return CKR_HOST_MEMORY;
+
+	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
+			      NULL, NULL, shm, &size, NULL, NULL);
+
+	if (rv != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
 
 	if (!slots || *count < (size / sizeof(uint32_t))) {
 		*count = size / sizeof(uint32_t);
 		if (!slots)
-			return CKR_OK;
+			rv = CKR_OK;
+		else
+			rv = CKR_BUFFER_TOO_SMALL;
 
-		return CKR_BUFFER_TOO_SMALL;
+		goto bail;
 	}
 
-	shm = sks_alloc_shm_out(NULL, size);
+	/*
+	 * Invoke now to get effect slot ID table
+	 * Shm io2: (out) [slot-list]
+	 */
+	ckteec_free_shm(shm);
+	shm = ckteec_alloc_shm(size, CKTEEC_SHM_OUT);
 	if (!shm)
 		return CKR_HOST_MEMORY;
 
-	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_LIST, NULL, 0,
-				NULL, 0, shm, NULL) != CKR_OK) {
+	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
+			      NULL, NULL, shm, &size, NULL, NULL);
+
+	if (rv != CKR_OK || size != shm->size) {
 		rv = CKR_DEVICE_ERROR;
 		goto bail;
 	}
@@ -91,8 +110,10 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 
 	*count = size / sizeof(uint32_t);
 	rv = CKR_OK;
+
 bail:
-	sks_free_shm(shm);
+	ckteec_free_shm(shm);
+
 	return rv;
 
 }
