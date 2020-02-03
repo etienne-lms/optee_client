@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <pkcs11.h>
 #include <pkcs11_ta.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,13 +30,16 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 			CK_ULONG count,
 			CK_OBJECT_HANDLE_PTR handle)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 	struct serializer obj;
-	char *ctrl = NULL;
-	size_t ctrl_size;
-	uint32_t key_handle;
+	size_t ctrl_size = 0;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out_shm = NULL;
 	uint32_t session_handle = session;
+	uint32_t key_handle;
 	size_t key_handle_size = sizeof(key_handle);
+	char *buf = NULL;
+	size_t out_size = 0;
 
 	if (!handle || !attribs)
 		return CKR_ARGUMENTS_BAD;
@@ -44,28 +48,45 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 	if (rv)
 		goto bail;
 
-	/* ctrl = [session-handle][headed-serialized-attributes] */
-	ctrl_size = sizeof(uint32_t) + obj.size;
-	ctrl = malloc(ctrl_size);
+	/* Shm io0: (i/o) [session-handle][serialized-attributes] / [status] */
+	ctrl_size = sizeof(session_handle) + obj.size;
+	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
 	if (!ctrl) {
 		rv = CKR_HOST_MEMORY;
 		goto bail;
 	}
 
-	memcpy(ctrl, &session_handle, sizeof(uint32_t));
-	memcpy(ctrl + sizeof(uint32_t), obj.buffer, obj.size);
+	buf = ctrl->buffer;
 
-	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 PKCS11_CMD_IMPORT_OBJECT, ctrl, ctrl_size,
-				 NULL, 0, &key_handle, &key_handle_size);
-	if (rv)
+	memcpy(buf, &session_handle, sizeof(session_handle));
+	buf += sizeof(session_handle);
+
+	memcpy(buf, obj.buffer, obj.size);
+
+	/* Shm io2: (out) [object handle] */
+	out_shm = ckteec_alloc_shm(key_handle_size, CKTEEC_SHM_OUT);
+	if (!out_shm) {
+		rv = CKR_HOST_MEMORY;
 		goto bail;
+	}
 
+	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_IMPORT_OBJECT,
+				    ctrl, out_shm, &out_size);
+
+	if (rv != CKR_OK || out_size != out_shm->size) {
+		if (rv == CKR_OK)
+			rv = CKR_DEVICE_ERROR;
+		goto bail;
+	}
+
+	memcpy(&key_handle, out_shm->buffer, key_handle_size);
 	*handle = key_handle;
 
 bail:
 	release_serial_object(&obj);
-	free(ctrl);
+	ckteec_free_shm(out_shm);
+	ckteec_free_shm(ctrl);
+
 	return rv;
 }
 
