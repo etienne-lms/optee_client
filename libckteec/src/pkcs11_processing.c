@@ -608,22 +608,37 @@ CK_RV ck_signverify_update(CK_SESSION_HANDLE session,
 			   CK_ULONG in_len,
 			   int sign)
 {
-	CK_RV rv;
-	uint32_t ctrl;
-	size_t ctrl_size;
-	void *in_buf = in;
-	size_t in_size = in_len;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *in_shm = NULL;
+	uint32_t session_handle = session;
 
 	if (in_len && !in)
 		return CKR_ARGUMENTS_BAD;
 
-	/* params = [session-handle] */
-	ctrl = session;
-	ctrl_size = sizeof(ctrl);
+	/* Shm io0: (in/out) ctrl = [session-handle] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
 
-	rv = ck_invoke_ta_in(ck_session2sks_ctx(session), sign ?
-			     PKCS11_CMD_SIGN_UPDATE : PKCS11_CMD_VERIFY_UPDATE,
-			     &ctrl, ctrl_size, in_buf, in_size);
+	/* Shm io1: intput data */
+	if (in_len) {
+		in_shm = register_or_alloc_input_buffer(in, in_len);
+		if (!in_shm) {
+			rv = CKR_HOST_MEMORY;
+			goto bail;
+		}
+	}
+
+	rv = ckteec_invoke_ctrl_in(sign ? PKCS11_CMD_SIGN_UPDATE :
+				   PKCS11_CMD_VERIFY_UPDATE, ctrl, in_shm);
+
+bail:
+	ckteec_free_shm(in_shm);
+	ckteec_free_shm(ctrl);
 
 	return rv;
 }
