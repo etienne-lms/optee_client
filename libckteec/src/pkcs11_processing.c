@@ -13,7 +13,6 @@
 
 #include "pkcs11_processing.h"
 #include "invoke_ta.h"
-#include "invoke_ta2.h"
 #include "serializer.h"
 #include "serialize_ck.h"
 

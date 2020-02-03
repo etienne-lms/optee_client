@@ -3,60 +3,51 @@
  * Copyright (c) 2017-2020, Linaro Limited
  */
 
-#include <ck_debug.h>
+/* BINARY_PREFIX is expected by teec_trace.h */
+#ifndef BINARY_PREFIX
+#define BINARY_PREFIX		"ckteec"
+#endif
+
 #include <pkcs11.h>
 #include <pkcs11_ta.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <tee_client_api.h>
+#include <teec_trace.h>
 
 #include "ck_helpers.h"
 #include "invoke_ta.h"
-#include "invoke_ta2.h"
 #include "local_utils.h"
 
-static struct sks_invoke primary_invoke;
+struct ta_context {
+	pthread_mutex_t init_mutex;
+	bool initiated;
+	TEEC_Context context;
+	TEEC_Session session;
+};
 
-void invoke_ta_open_primary_context(TEEC_Context *context,
-				    TEEC_Session *session)
+static struct ta_context ta_ctx = {
+	.init_mutex = PTHREAD_MUTEX_INITIALIZER,
+};
+
+bool ckteec_invoke_initiated(void)
 {
-	primary_invoke.context = context;
-	primary_invoke.session = session;
+	return ta_ctx.initiated;
 }
 
-void invoke_ta_close_primary_context(void)
+TEEC_SharedMemory *ckteec_alloc_shm(size_t size, enum ckteec_shm_dir dir)
 {
-	primary_invoke.context = NULL;
-	primary_invoke.session = NULL;
-}
-
-static struct sks_invoke *get_invoke_context(struct sks_invoke *sks_ctx)
-{
-	(void)sks_ctx;
-
-	if (!primary_invoke.session)
-		return NULL;
-
-	return &primary_invoke;
-}
-
-static TEEC_Context *teec_ctx(struct sks_invoke *sks_ctx)
-{
-	return (TEEC_Context *)sks_ctx->context;
-}
-
-static TEEC_Session *teec_sess(struct sks_invoke *sks_ctx)
-{
-	return (TEEC_Session *)sks_ctx->session;
-}
-
-TEEC_SharedMemory *sks_alloc_shm(struct sks_invoke *sks_ctx,
-				 size_t size, int in, int out)
-{
-	struct sks_invoke *ctx = get_invoke_context(sks_ctx);
 	TEEC_SharedMemory *shm;
 
-	if (!ctx || (!in && !out))
+	switch (dir) {
+	case CKTEEC_SHM_IN:
+	case CKTEEC_SHM_OUT:
+	case CKTEEC_SHM_INOUT:
+		break;
+	default:
 		return NULL;
+	}
 
 	shm = calloc(1, sizeof(TEEC_SharedMemory));
 	if (!shm)
@@ -64,12 +55,12 @@ TEEC_SharedMemory *sks_alloc_shm(struct sks_invoke *sks_ctx,
 
 	shm->size = size;
 
-	if (in)
+	if (dir == CKTEEC_SHM_IN || dir == CKTEEC_SHM_INOUT)
 		shm->flags |= TEEC_MEM_INPUT;
-	if (out)
+	if (dir == CKTEEC_SHM_OUT || dir == CKTEEC_SHM_INOUT)
 		shm->flags |= TEEC_MEM_OUTPUT;
 
-	if (TEEC_AllocateSharedMemory(teec_ctx(ctx), shm)) {
+	if (TEEC_AllocateSharedMemory(&ta_ctx.context, shm)) {
 		free(shm);
 		return NULL;
 	}
@@ -77,28 +68,33 @@ TEEC_SharedMemory *sks_alloc_shm(struct sks_invoke *sks_ctx,
 	return shm;
 }
 
-TEEC_SharedMemory *sks_register_shm(struct sks_invoke *sks_ctx,
-				    void *buf, size_t size, int in, int out)
+TEEC_SharedMemory *ckteec_register_shm(void *buffer, size_t size,
+				       enum ckteec_shm_dir dir)
 {
-	struct sks_invoke *ctx = get_invoke_context(sks_ctx);
 	TEEC_SharedMemory *shm;
 
-	if (!ctx || (!in && !out))
+	switch (dir) {
+	case CKTEEC_SHM_IN:
+	case CKTEEC_SHM_OUT:
+	case CKTEEC_SHM_INOUT:
+		break;
+	default:
 		return NULL;
+	}
 
 	shm = calloc(1, sizeof(TEEC_SharedMemory));
 	if (!shm)
 		return NULL;
 
-	shm->buffer = buf;
+	shm->buffer = buffer;
 	shm->size = size;
 
-	if (in)
+	if (dir == CKTEEC_SHM_IN || dir == CKTEEC_SHM_INOUT)
 		shm->flags |= TEEC_MEM_INPUT;
-	if (out)
+	if (dir == CKTEEC_SHM_OUT || dir == CKTEEC_SHM_INOUT)
 		shm->flags |= TEEC_MEM_OUTPUT;
 
-	if (TEEC_RegisterSharedMemory(teec_ctx(ctx), shm)) {
+	if (TEEC_RegisterSharedMemory(&ta_ctx.context, shm)) {
 		free(shm);
 		return NULL;
 	}
@@ -106,179 +102,202 @@ TEEC_SharedMemory *sks_register_shm(struct sks_invoke *sks_ctx,
 	return shm;
 }
 
-void sks_free_shm(TEEC_SharedMemory *shm)
+void ckteec_free_shm(TEEC_SharedMemory *shm)
 {
 	TEEC_ReleaseSharedMemory(shm);
 	free(shm);
 }
 
-#define DIR_IN			1
-#define DIR_OUT			0
-#define DIR_NONE		-1
-
-static CK_RV invoke_ta(struct sks_invoke *sks_ctx, unsigned long cmd,
-			void *ctrl, size_t ctrl_sz,
-			void *io1, size_t *io1_sz, int io1_dir,
-			void *io2, size_t *io2_sz, int io2_dir,
-			void *io3, size_t *io3_sz, int io3_dir)
+static bool is_output_shm(TEEC_SharedMemory *shm)
 {
-	struct sks_invoke *ctx = get_invoke_context(sks_ctx);
+	return shm && (shm->flags & TEEC_MEM_OUTPUT);
+}
+
+CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
+		       TEEC_SharedMemory *io1, size_t *out1_size,
+		       TEEC_SharedMemory *io2, size_t *out2_size,
+		       TEEC_SharedMemory *io3, size_t *out3_size)
+{
 	uint32_t command = (uint32_t)cmd;
 	TEEC_Operation op;
-	uint32_t origin;
-	TEEC_Result res;
-	TEEC_SharedMemory *ctrl_shm = ctrl;
-	TEEC_SharedMemory *io1_shm = io1;
-	TEEC_SharedMemory *io2_shm = io2;
-	TEEC_SharedMemory *io3_shm = io3;
-	uint32_t sks_rc;
+	uint32_t origin = 0;
+	TEEC_Result res = TEEC_ERROR_GENERIC;
+	uint32_t ta_rc = PKCS11_CKR_ARGUMENTS_BAD;
+	CK_RV ck_rv = CKR_ARGUMENTS_BAD;
+
+	if ((is_output_shm(io1) && !out1_size) ||
+	    (is_output_shm(io2) && !out2_size) ||
+	    (is_output_shm(io3) && !out3_size))
+		return CKR_ARGUMENTS_BAD;
 
 	memset(&op, 0, sizeof(op));
 
-	/*
-	 * Command control field: TEE invocation parameter #0
-	 */
-	if (ctrl && ctrl_sz) {
-		op.params[0].tmpref.buffer = ctrl;
-		op.params[0].tmpref.size = ctrl_sz;
-		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INOUT,
-						  0, 0, 0);
-	}
-	if (ctrl && !ctrl_sz) {
-		op.params[0].memref.parent = ctrl_shm;
+	if (ctrl) {
 		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, 0, 0, 0);
+		op.params[0].memref.parent = ctrl;
 	}
 
-	/*
-	 * IO data TEE invocation parameter #1
-	 */
-	if (io1_sz && (io1_dir == DIR_OUT || (io1_dir == DIR_IN && *io1_sz))) {
-		op.params[1].tmpref.buffer = io1;
-		op.params[1].tmpref.size = *io1_sz;
-		op.paramTypes |= TEEC_PARAM_TYPES(0, io1_dir == DIR_IN ?
-						  TEEC_MEMREF_TEMP_INPUT :
-						  TEEC_MEMREF_TEMP_OUTPUT,
-						  0, 0);
-	}
-	if (io1_dir != DIR_NONE && !io1_sz && io1) {
-		op.params[1].memref.parent = io1_shm;
+	if (io1) {
 		op.paramTypes |= TEEC_PARAM_TYPES(0, TEEC_MEMREF_WHOLE, 0, 0);
+		op.params[1].memref.parent = io1;
 	}
 
-	/*
-	 * IO data TEE invocation parameter #2
-	 */
-	if (io2_sz && (io2_dir == DIR_OUT || (io2_dir == DIR_IN && *io2_sz))) {
-		op.params[2].tmpref.buffer = io2;
-		op.params[2].tmpref.size = *io2_sz;
-		op.paramTypes |= TEEC_PARAM_TYPES(0, 0, io2_dir == DIR_IN ?
-						  TEEC_MEMREF_TEMP_INPUT :
-						  TEEC_MEMREF_TEMP_OUTPUT,
-						  0);
-	}
-	if (io2_dir != DIR_NONE && !io2_sz && io2) {
-		op.params[2].memref.parent = io2_shm;
+	if (io2) {
 		op.paramTypes |= TEEC_PARAM_TYPES(0, 0, TEEC_MEMREF_WHOLE, 0);
+		op.params[2].memref.parent = io2;
 	}
 
-	/*
-	 * IO data TEE invocation parameter #3
-	 */
-	if (io3_sz && (io3_dir == DIR_OUT || (io3_dir == DIR_IN && *io3_sz))) {
-		op.params[3].tmpref.buffer = io3;
-		op.params[3].tmpref.size = *io3_sz;
-		op.paramTypes |= TEEC_PARAM_TYPES(0, 0, 0, io3_dir == DIR_IN ?
-						  TEEC_MEMREF_TEMP_INPUT :
-						  TEEC_MEMREF_TEMP_OUTPUT);
-	}
-	if (io3_dir != DIR_NONE && !io3_sz && io3) {
-		op.params[3].memref.parent = io3_shm;
+	if (io3) {
 		op.paramTypes |= TEEC_PARAM_TYPES(0, 0, 0, TEEC_MEMREF_WHOLE);
+		op.params[3].memref.parent = io3;
 	}
 
-
-	/*
-	 * Invoke the TEE and update output buffer size on exit.
-	 * Too short buffers are treated as positive errors.
-	 */
-	res = TEEC_InvokeCommand(teec_sess(ctx), command, &op, &origin);
-
+	res = TEEC_InvokeCommand(&ta_ctx.session, command, &op, &origin);
 	if (res) {
-		if (res == TEEC_ERROR_SHORT_BUFFER) {
-			if (io1_dir == DIR_OUT && io1_sz)
-				*io1_sz = op.params[1].tmpref.size;
-			if (io2_dir == DIR_OUT && io2_sz)
-				*io2_sz = op.params[2].tmpref.size;
-			if (io3_dir == DIR_OUT && io3_sz)
-				*io3_sz = op.params[3].tmpref.size;
-		}
-
-		return teec2ck_rv(res);
+		ck_rv = teec2ck_rv(res);
+		goto out;
 	}
 
-	/* Get PKCS11 TA return value from ctrl buffer, if none we expect success */
-	if (ctrl &&
-	    ((ctrl_sz && op.params[0].tmpref.size == sizeof(uint32_t)) ||
-	    (!ctrl_sz && op.params[0].memref.size == sizeof(uint32_t)))) {
-		memcpy(&sks_rc, ctrl, sizeof(uint32_t));
+	/* Get PKCS11 TA return value from ctrl buffer */
+	if (ctrl && (ctrl->flags & TEEC_MEM_OUTPUT) &&
+	    op.params[0].memref.size == sizeof(ta_rc))
+		memcpy(&ta_rc, ctrl->buffer, sizeof(ta_rc));
+	else
+		ta_rc = PKCS11_CKR_OK;
+
+	ck_rv = ta2ck_rv(ta_rc);
+
+out:
+	if (ck_rv == CKR_OK || ck_rv == CKR_BUFFER_TOO_SMALL) {
+		if (is_output_shm(io1))
+			*out1_size = op.params[1].memref.size;
+		if (is_output_shm(io2))
+			*out2_size = op.params[2].memref.size;
+		if (is_output_shm(io3))
+			*out3_size = op.params[3].memref.size;
+	}
+
+	return ck_rv;
+}
+
+static CK_RV ping_ta(void)
+{
+	TEEC_Operation op;
+	uint32_t origin;
+	TEEC_Result res;
+	uint32_t ta_version[3];
+
+	memset(&op, 0, sizeof(op));
+	op.params[2].tmpref.buffer = ta_version;
+	op.params[2].tmpref.size = sizeof(ta_version);
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE,
+					 TEEC_MEMREF_TEMP_OUTPUT, TEEC_NONE);
+
+	res = TEEC_InvokeCommand(&ta_ctx.session, PKCS11_CMD_PING, &op,
+				 &origin);
+	if (res != TEEC_SUCCESS)
+		return CKR_DEVICE_ERROR;
+
+	if (ta_version[0] != PKCS11_TA_VERSION_MAJOR &&
+	    ta_version[1] > PKCS11_TA_VERSION_MINOR) {
+		EMSG("PKCS11 TA version mismatch: %u.%u.%u",
+		     (unsigned int)ta_version[0],
+		     (unsigned int)ta_version[1],
+		     (unsigned int)ta_version[2]);
+
+		return CKR_DEVICE_ERROR;
+	}
+
+	DMSG("PKCS11 TA version %u.%u.%u", (unsigned int)ta_version[0],
+	     (unsigned int)ta_version[1], (unsigned int)ta_version[2]);
+
+	return CKR_OK;
+}
+
+CK_RV ckteec_invoke_init(void)
+{
+	TEEC_UUID uuid = PKCS11_TA_UUID;
+	uint32_t origin = 0;
+	TEEC_Result res = TEEC_SUCCESS;
+	CK_RV rv = CKR_CRYPTOKI_ALREADY_INITIALIZED;
+	int e;
+
+	e = pthread_mutex_lock(&ta_ctx.init_mutex);
+	if (e) {
+		EMSG("pthread_mutex_lock: %s", strerror(e));
+		EMSG("terminating...");
+		exit(EXIT_FAILURE);
+	}
+
+	if (ta_ctx.initiated) {
+		rv = CKR_CRYPTOKI_ALREADY_INITIALIZED;
+		goto out;
+	}
+
+	res = TEEC_InitializeContext(NULL, &ta_ctx.context);
+	if (res != TEEC_SUCCESS) {
+		EMSG("TEEC init context failed\n");
+		rv = CKR_DEVICE_ERROR;
+		goto out;
+	}
+
+	res = TEEC_OpenSession(&ta_ctx.context, &ta_ctx.session, &uuid,
+			       TEEC_LOGIN_PUBLIC, NULL, NULL, &origin);
+	if (res != TEEC_SUCCESS) {
+		EMSG("TEEC open session failed %x from %d\n", res, origin);
+		TEEC_FinalizeContext(&ta_ctx.context);
+		rv = CKR_DEVICE_ERROR;
+		goto out;
+	}
+
+	rv = ping_ta();
+
+	if (rv == CKR_OK) {
+		ta_ctx.initiated = true;
 	} else {
-		sks_rc = PKCS11_CKR_OK;
+		TEEC_CloseSession(&ta_ctx.session);
+		TEEC_FinalizeContext(&ta_ctx.context);
 	}
 
-	if (sks_rc == PKCS11_CKR_OK || sks_rc == PKCS11_CKR_BUFFER_TOO_SMALL) {
-		if (io1_dir == DIR_OUT && io1_sz)
-			*io1_sz = op.params[1].tmpref.size;
-		if (io2_dir == DIR_OUT && io2_sz)
-			*io2_sz = op.params[2].tmpref.size;
-		if (io3_dir == DIR_OUT && io3_sz)
-			*io3_sz = op.params[3].tmpref.size;
+out:
+	e = pthread_mutex_unlock(&ta_ctx.init_mutex);
+	if (e) {
+		EMSG("pthread_mutex_unlock: %s", strerror(e));
+		EMSG("terminating...");
+		exit(EXIT_FAILURE);
 	}
 
-	return ta2ck_rv(sks_rc);
+	return rv;
 }
 
-CK_RV ck_invoke_ta(struct sks_invoke *sks_ctx,
-		   unsigned long cmd,
-		   void *ctrl, size_t ctrl_sz)
+CK_RV ckteec_invoke_terminate(void)
 {
-	return invoke_ta(sks_ctx, cmd, ctrl, ctrl_sz,
-			 NULL, NULL, DIR_NONE,
-			 NULL, NULL, DIR_NONE,
-			 NULL, NULL, DIR_NONE);
-}
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
+	int e;
 
-CK_RV ck_invoke_ta_in(struct sks_invoke *sks_ctx,
-		      unsigned long cmd,
-		      void *ctrl, size_t ctrl_sz,
-		      void *in, size_t in_sz)
-{
-	return invoke_ta(sks_ctx, cmd, ctrl, ctrl_sz,
-			 in, &in_sz, DIR_IN,
-			 NULL, NULL, DIR_NONE,
-			 NULL, NULL, DIR_NONE);
-}
+	e = pthread_mutex_lock(&ta_ctx.init_mutex);
+	if (e) {
+		EMSG("pthread_mutex_lock: %s", strerror(e));
+		EMSG("terminating...");
+		exit(EXIT_FAILURE);
+	}
 
+	if (!ta_ctx.initiated)
+		goto out;
 
-CK_RV ck_invoke_ta_in_out(struct sks_invoke *sks_ctx,
-		   unsigned long cmd,
-		   void *ctrl, size_t ctrl_sz,
-		   void *in, size_t in_sz,
-		   void *out, size_t *out_sz)
-{
-	return invoke_ta(sks_ctx, cmd, ctrl, ctrl_sz,
-			 in, &in_sz, DIR_IN,
-			 out, out_sz, DIR_OUT,
-			 NULL, NULL, DIR_NONE);
-}
+	ta_ctx.initiated = false;
+	TEEC_CloseSession(&ta_ctx.session);
+	TEEC_FinalizeContext(&ta_ctx.context);
 
-CK_RV ck_invoke_ta_in_in(struct sks_invoke *sks_ctx,
-		   unsigned long cmd,
-		   void *ctrl, size_t ctrl_sz,
-		   void *in, size_t in_sz,
-		   void *in2, size_t in2_sz)
-{
-	return invoke_ta(sks_ctx, cmd, ctrl, ctrl_sz,
-			 in, &in_sz, DIR_IN,
-			 in2, &in2_sz, DIR_IN,
-			 NULL, NULL, DIR_NONE);
+	rv = CKR_OK;
+
+out:
+	e = pthread_mutex_unlock(&ta_ctx.init_mutex);
+	if (e) {
+		EMSG("pthread_mutex_unlock: %s", strerror(e));
+		EMSG("terminating...");
+		exit(EXIT_FAILURE);
+	}
+
+	return rv;
 }

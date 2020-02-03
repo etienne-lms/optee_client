@@ -8,7 +8,6 @@
 #include <stdlib.h>
 
 #include "invoke_ta.h"
-#include "invoke_ta2.h"
 #include "local_utils.h"
 #include "pkcs11_processing.h"
 #include "pkcs11_token.h"
