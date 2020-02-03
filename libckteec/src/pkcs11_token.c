@@ -659,25 +659,43 @@ CK_RV ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 	       CK_UTF8CHAR_PTR pin, CK_ULONG pin_len)
 
 {
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
 	uint32_t pkcs11_session = session;
 	uint32_t pkcs11_user = ck2ta_user_type(user_type);
 	uint32_t pkcs11_pin_len = pin_len;
-	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_pin_len;
-	char *ctrl;
+	size_t ctrl_size = 0;
+	char *buf = NULL;
 
 	if (!pin)
 		return CKR_ARGUMENTS_BAD;
 
-	ctrl = malloc(ctrl_size);
+	/* Shm io0: (i/o) ctrl = [session][user][pin length][pin] / [status] */
+	ctrl_size = sizeof(pkcs11_session) + sizeof(pkcs11_user) +
+		    sizeof(pkcs11_pin_len) + pkcs11_pin_len;
+
+	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
-	memcpy(ctrl + sizeof(uint32_t), &pkcs11_user, sizeof(uint32_t));
-	memcpy(ctrl + 2 * sizeof(uint32_t), &pkcs11_pin_len, sizeof(uint32_t));
-	memcpy(ctrl + 3 * sizeof(uint32_t), pin, pkcs11_pin_len);
+	buf = ctrl->buffer;
 
-	return ck_invoke_ta(NULL, PKCS11_CMD_LOGIN, ctrl, ctrl_size);
+	memcpy(buf, &pkcs11_session, sizeof(pkcs11_session));
+	buf += sizeof(pkcs11_session);
+
+	memcpy(buf, &pkcs11_user, sizeof(pkcs11_user));
+	buf += sizeof(pkcs11_user);
+
+	memcpy(buf, &pkcs11_pin_len, sizeof(pkcs11_pin_len));
+	buf += sizeof(pkcs11_pin_len);
+
+	memcpy(buf, pin, pkcs11_pin_len);
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_LOGIN, ctrl);
+
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
 
 /**
