@@ -483,10 +483,24 @@ bail:
  */
 CK_RV ck_close_all_sessions(CK_SLOT_ID slot)
 {
-	uint32_t ctrl[1] = { (uint32_t)slot };
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	uint32_t slot_id = slot;
 
-	return ck_invoke_ta(NULL, PKCS11_CMD_CLOSE_ALL_SESSIONS,
-			    &ctrl, sizeof(ctrl));
+	/* Shm io0: (in/out) ctrl = [slot-id] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(slot_id), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &slot_id, sizeof(slot_id));
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_CLOSE_ALL_SESSIONS, ctrl);
+
+bail:
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
 
 /**
