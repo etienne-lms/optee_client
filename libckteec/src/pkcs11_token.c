@@ -509,15 +509,53 @@ bail:
 CK_RV ck_get_session_info(CK_SESSION_HANDLE session,
 			  CK_SESSION_INFO_PTR info)
 {
-	uint32_t ctrl[1] = { (uint32_t)session };
-	size_t info_size = sizeof(CK_SESSION_INFO);
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out = NULL;
+	uint32_t session_handle = session;
+	struct pkcs11_session_info *ta_info = NULL;
+	size_t out_size = 0;
 
 	if (!info)
 		return CKR_ARGUMENTS_BAD;
 
-	return ck_invoke_ta_in_out(NULL, PKCS11_CMD_SESSION_INFO,
-				   &ctrl, sizeof(ctrl),
-				   NULL, 0, info, &info_size);
+	/* Shm io0: (in/out) ctrl = [session-handle] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
+
+	/* Shm io2: (out) [session info] */
+	out = ckteec_alloc_shm(sizeof(struct pkcs11_session_info),
+			       CKTEEC_SHM_OUT);
+	if (!out) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+
+	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_SESSION_INFO,
+				    ctrl, out, &out_size);
+
+	if (rv != CKR_OK || out_size != out->size) {
+		if (rv == CKR_OK)
+			rv = CKR_DEVICE_ERROR;
+		goto bail;
+	}
+
+	ta_info = (struct pkcs11_session_info *)out->buffer;
+
+	if (ta2ck_session_info(info, ta_info)) {
+		LOG_ERROR("unexpected bad mechanism info structure\n");
+		rv = CKR_DEVICE_ERROR;
+	}
+
+bail:
+	ckteec_free_shm(ctrl);
+	ckteec_free_shm(out);
+
+	return rv;
 }
 
 /**
