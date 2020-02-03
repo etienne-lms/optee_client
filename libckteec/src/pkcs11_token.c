@@ -123,24 +123,48 @@ bail:
  */
 CK_RV ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 {
-	uint32_t ctrl[1] = { slot };
-	CK_SLOT_INFO *ck_info = info;
-	struct pkcs11_slot_info pkcs11_info;
-	size_t out_size = sizeof(pkcs11_info);
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out = NULL;
+	uint32_t slot_id = slot;
+	size_t out_size = 0;
 
 	if (!info)
 		return CKR_ARGUMENTS_BAD;
 
-	if (ck_invoke_ta_in_out(NULL, PKCS11_CMD_SLOT_INFO, &ctrl, sizeof(ctrl),
-				NULL, 0, &pkcs11_info, &out_size))
-		return CKR_DEVICE_ERROR;
+	/* Shm io0: (in/out) ctrl = [slot-id] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(slot_id), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &slot_id, sizeof(slot_id));
 
-	if (ta2ck_slot_info(ck_info, &pkcs11_info)) {
-		LOG_ERROR("unexpected bad token info structure\n");
-		return CKR_DEVICE_ERROR;
+	/* Shm io2: (out) [pkcs11 slot info] */
+	out = ckteec_alloc_shm(sizeof(struct pkcs11_slot_info),
+			       CKTEEC_SHM_OUT);
+	if (!out) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
 
-	return CKR_OK;
+	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_SLOT_INFO, ctrl, out, &out_size);
+	if (rv != CKR_OK || out_size != out->size) {
+		if (rv == CKR_OK)
+			rv = CKR_DEVICE_ERROR;
+		goto bail;
+	}
+
+	if (ta2ck_slot_info(info, (struct pkcs11_slot_info *)out->buffer)) {
+		LOG_ERROR("unexpected bad token info structure\n");
+		rv = CKR_DEVICE_ERROR;
+	}
+
+bail:
+	ckteec_free_shm(ctrl);
+	ckteec_free_shm(out);
+
+	return rv;
 }
 
 /**
