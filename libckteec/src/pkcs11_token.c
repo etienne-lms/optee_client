@@ -606,36 +606,50 @@ CK_RV ck_set_pin(CK_SESSION_HANDLE session,
 		 CK_UTF8CHAR_PTR old, CK_ULONG old_len,
 		 CK_UTF8CHAR_PTR new, CK_ULONG new_len)
 {
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
 	uint32_t pkcs11_session = session;
 	uint32_t pkcs11_old_len = old_len;
 	uint32_t pkcs11_new_len = new_len;
-	size_t ctrl_size = 3 * sizeof(uint32_t) + pkcs11_old_len + pkcs11_new_len;
-	char *ctrl;
-	size_t offset;
+	size_t ctrl_size = 0;
+	char *buf;
 
 	if (!old || !new)
 		return CKR_ARGUMENTS_BAD;
 
-	ctrl = malloc(ctrl_size);
+	/*
+	 * Shm io0: (in/out) ctrl
+	 * (in) [session][old_pin_len][new_pin_len][old pin][new pin]
+	 * (out) [status]
+	 */
+	ctrl_size = sizeof(pkcs11_session) + sizeof(pkcs11_old_len) +
+		    sizeof(pkcs11_new_len) + pkcs11_old_len + pkcs11_new_len;
+
+	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	/* ABI: [session][old_pin_len][new_pin_len][old pin][new pin] */
-	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
-	offset = sizeof(uint32_t);
+	buf = ctrl->buffer;
 
-	memcpy(ctrl + offset, &pkcs11_old_len, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
+	memcpy(buf, &pkcs11_session, sizeof(pkcs11_session));
+	buf += sizeof(pkcs11_session);
 
-	memcpy(ctrl + offset, &pkcs11_new_len, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
+	memcpy(buf, &pkcs11_old_len, sizeof(pkcs11_old_len));
+	buf += sizeof(pkcs11_old_len);
 
-	memcpy(ctrl + offset, old, pkcs11_old_len);
-	offset += pkcs11_old_len;
+	memcpy(buf, &pkcs11_new_len, sizeof(pkcs11_new_len));
+	buf += sizeof(pkcs11_new_len);
 
-	memcpy(ctrl + offset, new, pkcs11_new_len);
+	memcpy(buf, old, pkcs11_old_len);
+	buf += pkcs11_old_len;
 
-	return ck_invoke_ta(NULL, PKCS11_CMD_SET_PIN, ctrl, ctrl_size);
+	memcpy(buf, new, pkcs11_new_len);
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_SET_PIN, ctrl);
+
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
 
 /**
