@@ -321,34 +321,65 @@ bail:
 CK_RV ck_token_mechanism_info(CK_SLOT_ID slot, CK_MECHANISM_TYPE type,
 			      CK_MECHANISM_INFO_PTR info)
 {
-	CK_RV rv;
-	uint32_t ctrl[2];
-	struct pkcs11_mechanism_info outbuf;
-	size_t outsize = sizeof(outbuf);
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out = NULL;
+	struct pkcs11_mechanism_info *outbuf;
+	uint32_t slot_id = slot;
+	uint32_t mecha_type = ck2ta_mechanism_type(type);
+	char *buf = NULL;
+	size_t out_size = 0;
 
 	if (!info)
 		return CKR_ARGUMENTS_BAD;
 
-	ctrl[0] = (uint32_t)slot;
-	ctrl[1] = ck2ta_mechanism_type(type);
-	if (ctrl[1] == PKCS11_UNDEFINED_ID) {
+	mecha_type = ck2ta_mechanism_type(type);
+	if (mecha_type == PKCS11_UNDEFINED_ID) {
 		LOG_ERROR("mechanism is not support by this library\n");
 		return CKR_DEVICE_ERROR;
 	}
 
-	/* info is large enought, for sure */
-	rv = ck_invoke_ta_in_out(NULL, PKCS11_CMD_MECHANISM_INFO,
-				 &ctrl, sizeof(ctrl),
-				 NULL, 0, &outbuf, &outsize);
-	if (rv) {
-		LOG_ERROR("Unexpected bad state (%x)\n", (unsigned)rv);
-		return CKR_DEVICE_ERROR;
+	/* Shm io0: (in/out) ctrl = [slot-id][mechanism-type] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(slot_id) + sizeof(mecha_type),
+				CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
 
-	if (ta2ck_mechanism_info(info, &outbuf)) {
-		LOG_ERROR("unexpected bad mechanism info structure\n");
-		rv = CKR_DEVICE_ERROR;
+	buf = ctrl->buffer;
+
+	memcpy(buf, &slot_id, sizeof(slot_id));
+	buf += sizeof(slot_id);
+
+	memcpy(buf, &mecha_type, sizeof(mecha_type));
+
+	/* Shm io2: (out) [mechanism-info] */
+	out = ckteec_alloc_shm(sizeof(struct pkcs11_mechanism_info),
+			       CKTEEC_SHM_OUT);
+	if (!out) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
+
+	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_MECHANISM_INFO,
+				    ctrl, out, &out_size);
+
+	if (rv != CKR_OK || out_size != out->size) {
+		if (rv == CKR_OK)
+			rv = CKR_DEVICE_ERROR;
+		goto bail;
+	}
+
+	outbuf = (struct pkcs11_mechanism_info *)out->buffer;
+
+	if (ta2ck_mechanism_info(info, outbuf))
+		rv = CKR_DEVICE_ERROR;
+
+bail:
+	ckteec_free_shm(ctrl);
+	ckteec_free_shm(out);
+
 	return rv;
 }
 
