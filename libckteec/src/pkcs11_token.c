@@ -703,15 +703,20 @@ CK_RV ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
  */
 CK_RV ck_logout(CK_SESSION_HANDLE session)
 {
-	uint32_t pkcs11_session = session;
-	size_t ctrl_size = sizeof(uint32_t);
-	char *ctrl;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	uint32_t session_handle = session;
 
-	ctrl = malloc(ctrl_size);
+	/* io0 = [session-handle] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &pkcs11_session, sizeof(uint32_t));
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
 
-	return ck_invoke_ta(NULL, PKCS11_CMD_LOGOUT, ctrl, ctrl_size);
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_LOGOUT, ctrl);
+
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
