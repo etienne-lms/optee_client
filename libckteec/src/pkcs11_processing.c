@@ -93,10 +93,32 @@ bail:
 CK_RV ck_destroy_object(CK_SESSION_HANDLE session,
 			CK_OBJECT_HANDLE obj)
 {
-	uint32_t ctrl[2] = { (uint32_t)session, (uint32_t)obj };
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	size_t ctrl_size = 0;
+	char *buf = NULL;
+	uint32_t session_handle = session;
+	uint32_t obj_id = obj;
 
-	return ck_invoke_ta(ck_session2sks_ctx(session),
-			    PKCS11_CMD_DESTROY_OBJECT, ctrl, sizeof(ctrl));
+	/* Shm io0: (i/o) ctrl = [session-handle][object-handle] / [status] */
+	ctrl_size = sizeof(session_handle) + sizeof(obj_id);
+
+	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
+	if (!ctrl)
+		return CKR_HOST_MEMORY;
+
+	buf = ctrl->buffer;
+
+	memcpy(buf, &session_handle, sizeof(session_handle));
+	buf += sizeof(session_handle);
+
+	memcpy(buf, &obj_id, sizeof(obj_id));
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_DESTROY_OBJECT, ctrl);
+
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
 
 CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
