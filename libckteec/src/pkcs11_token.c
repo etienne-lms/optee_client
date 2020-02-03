@@ -25,9 +25,9 @@
 	} while (0)
 
 /**
- * ck_get_info - implementation of C_GetInfo
+ * ck_get_info - Get local information for C_GetInfo
  */
-int ck_get_info(CK_INFO_PTR info)
+CK_RV ck_get_info(CK_INFO_PTR info)
 {
 	const CK_VERSION ck_version = { 2, 40 };
 	const char manuf_id[] = PKCS11_SLOT_MANUFACTURER; // TODO slot?
@@ -100,7 +100,7 @@ bail:
 /**
  * ck_slot_get_info - Wrap C_GetSlotInfo into PKCS11_CMD_SLOT_INFO
  */
-int ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
+CK_RV ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 {
 	uint32_t ctrl[1] = { slot };
 	CK_SLOT_INFO *ck_info = info;
@@ -250,8 +250,7 @@ bail:
 /**
  * ck_token_mechanism_info - Wrap C_GetMechanismInfo into command MECHANISM_INFO
  */
-CK_RV ck_token_mechanism_info(CK_SLOT_ID slot,
-			      CK_MECHANISM_TYPE type,
+CK_RV ck_token_mechanism_info(CK_SLOT_ID slot, CK_MECHANISM_TYPE type,
 			      CK_MECHANISM_INFO_PTR info)
 {
 	CK_RV rv;
@@ -288,9 +287,8 @@ CK_RV ck_token_mechanism_info(CK_SLOT_ID slot,
 /**
  * ck_open_session - Wrap C_OpenSession into PKCS11_CMD_OPEN_{RW|RO}_SESSION
  */
-CK_RV ck_open_session(CK_SLOT_ID slot, CK_FLAGS flags,
-		      CK_VOID_PTR cookie, CK_NOTIFY callback,
-		      CK_SESSION_HANDLE_PTR session)
+CK_RV ck_open_session(CK_SLOT_ID slot, CK_FLAGS flags, CK_VOID_PTR cookie,
+		          CK_NOTIFY callback, CK_SESSION_HANDLE_PTR session)
 {
 	uint32_t ctrl[1] = { slot };
 	unsigned long cmd;
