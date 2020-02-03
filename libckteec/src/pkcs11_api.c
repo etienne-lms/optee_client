@@ -5,6 +5,8 @@
 
 #include <assert.h>
 #include <pkcs11.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 #include "invoke_ta.h"
@@ -12,8 +14,6 @@
 #include "pkcs11_processing.h"
 #include "pkcs11_token.h"
 #include "ck_helpers.h"
-
-static int lib_inited;
 
 static const CK_FUNCTION_LIST libckteec_function_list = {
 	.version = {
@@ -90,35 +90,60 @@ static const CK_FUNCTION_LIST libckteec_function_list = {
 	.C_WaitForSlotEvent = NULL,
 };
 
+static bool lib_initiated(void)
+{
+	return ckteec_invoke_initiated();
+}
+
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
+	CK_RV rv = 0;
+
 	/* Argument currently unused as per the PKCS#11 specification */
 	(void)pInitArgs;
 
-	if (lib_inited)
-		return CKR_CRYPTOKI_ALREADY_INITIALIZED;
+	rv = ckteec_invoke_init();
 
-	if (ckteec_invoke_init())
-		return CKR_FUNCTION_FAILED;
+	switch (rv) {
+	case CKR_ARGUMENTS_BAD:
+	case CKR_CANT_LOCK:
+	case CKR_CRYPTOKI_ALREADY_INITIALIZED:
+	case CKR_FUNCTION_FAILED:
+	case CKR_GENERAL_ERROR:
+	case CKR_HOST_MEMORY:
+	case CKR_NEED_TO_CREATE_THREADS:
+	case CKR_OK:
+		break;
+	default:
+		assert(!rv);
+	}
 
-	lib_inited = 1;
-
-	return CKR_OK;
+	return rv;
 }
 
 CK_RV C_Finalize(CK_VOID_PTR pReserved)
 {
+	CK_RV rv = 0;
+
 	/* Argument currently unused as per the PKCS#11 specification */
 	(void)pReserved;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
+	rv = ckteec_invoke_terminate();
 
-	ckteec_invoke_terminate();
+	switch (rv) {
+	case CKR_ARGUMENTS_BAD:
+	case CKR_CRYPTOKI_NOT_INITIALIZED:
+	case CKR_FUNCTION_FAILED:
+	case CKR_GENERAL_ERROR:
+	case CKR_HOST_MEMORY:
+	case CKR_OK:
+		break;
+	default:
+		assert(!rv);
+		break;
+	}
 
-	lib_inited = 0;
-
-	return CKR_OK;
+	return rv;
 }
 
 CK_RV C_GetInfo(CK_INFO_PTR pInfo)
@@ -128,10 +153,8 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 	if (!pInfo)
 		return CKR_ARGUMENTS_BAD;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_get_info(pInfo);
+	if (lib_initiated())
+		rv = ck_get_info(pInfo);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -164,12 +187,10 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent,
 		    CK_SLOT_ID_PTR pSlotList,
 		    CK_ULONG_PTR pulCount)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_slot_get_list(tokenPresent, pSlotList, pulCount);
+	if (lib_initiated())
+		rv = ck_slot_get_list(tokenPresent, pSlotList, pulCount);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -191,12 +212,10 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent,
 CK_RV C_GetSlotInfo(CK_SLOT_ID slotID,
 		    CK_SLOT_INFO_PTR pInfo)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_slot_get_info(slotID, pInfo);
+	if (lib_initiated())
+		rv = ck_slot_get_info(slotID, pInfo);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -221,12 +240,10 @@ CK_RV C_InitToken(CK_SLOT_ID slotID,
 		  CK_ULONG ulPinLen,
 		  CK_UTF8CHAR_PTR pLabel)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_init_token(slotID, pPin, ulPinLen, pLabel);
+	if (lib_initiated())
+		rv = ck_init_token(slotID, pPin, ulPinLen, pLabel);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -258,12 +275,10 @@ CK_RV C_InitToken(CK_SLOT_ID slotID,
 CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
 		     CK_TOKEN_INFO_PTR pInfo)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_token_get_info(slotID, pInfo);
+	if (lib_initiated())
+		rv = ck_token_get_info(slotID, pInfo);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -291,12 +306,10 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
 			 CK_MECHANISM_TYPE_PTR pMechanismList,
 			 CK_ULONG_PTR pulCount)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_token_mechanism_ids(slotID, pMechanismList, pulCount);
+	if (lib_initiated())
+		rv = ck_token_mechanism_ids(slotID, pMechanismList, pulCount);
 
 	switch (rv) {
 	case CKR_BUFFER_TOO_SMALL:
@@ -325,12 +338,10 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID,
 			 CK_MECHANISM_TYPE type,
 			 CK_MECHANISM_INFO_PTR pInfo)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_token_mechanism_info(slotID, type, pInfo);
+	if (lib_initiated())
+		rv = ck_token_mechanism_info(slotID, type, pInfo);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -361,12 +372,10 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID,
 		    CK_NOTIFY Notify,
 		    CK_SESSION_HANDLE_PTR phSession)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_open_session(slotID, flags, pApplication, Notify, phSession);
+	if (lib_initiated())
+		rv = ck_open_session(slotID, flags, pApplication, Notify, phSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -396,12 +405,10 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID,
 
 CK_RV C_CloseSession(CK_SESSION_HANDLE hSession)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_close_session(hSession);
+	if (lib_initiated())
+		rv = ck_close_session(hSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -425,12 +432,10 @@ CK_RV C_CloseSession(CK_SESSION_HANDLE hSession)
 
 CK_RV C_CloseAllSessions(CK_SLOT_ID slotID)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_close_all_sessions(slotID);
+	if (lib_initiated())
+		rv = ck_close_all_sessions(slotID);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -455,12 +460,10 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID)
 CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,
 		       CK_SESSION_INFO_PTR pInfo)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_get_session_info(hSession, pInfo);
+	if (lib_initiated())
+		rv = ck_get_session_info(hSession, pInfo);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -487,12 +490,10 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
 		CK_UTF8CHAR_PTR pPin,
 		CK_ULONG ulPinLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_init_pin(hSession, pPin, ulPinLen);
+	if (lib_initiated())
+		rv = ck_init_pin(hSession, pPin, ulPinLen);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -527,12 +528,10 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
 	       CK_UTF8CHAR_PTR pNewPin,
 	       CK_ULONG ulNewLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_set_pin(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
+	if (lib_initiated())
+		rv = ck_set_pin(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -569,12 +568,10 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,
 	      CK_ULONG ulPinLen)
 
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_login(hSession, userType, pPin, ulPinLen);
+	if (lib_initiated())
+		rv = ck_login(hSession, userType, pPin, ulPinLen);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -609,12 +606,10 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,
 
 CK_RV C_Logout(CK_SESSION_HANDLE hSession)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_logout(hSession);
+	if (lib_initiated())
+		rv = ck_logout(hSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -645,7 +640,7 @@ CK_RV C_GetOperationState(CK_SESSION_HANDLE hSession,
 	(void)pOperationState;
 	(void)pulOperationStateLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -663,7 +658,7 @@ CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession,
 	(void)hEncryptionKey;
 	(void)hAuthenticationKey;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -674,12 +669,10 @@ CK_RV C_CreateObject(CK_SESSION_HANDLE hSession,
 		     CK_ULONG ulCount,
 		     CK_OBJECT_HANDLE_PTR phObject)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_create_object(hSession, pTemplate, ulCount, phObject);
+	if (lib_initiated())
+		rv = ck_create_object(hSession, pTemplate, ulCount, phObject);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -725,7 +718,7 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE hSession,
 	(void)ulCount;
 	(void)phNewObject;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -734,12 +727,10 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE hSession,
 CK_RV C_DestroyObject(CK_SESSION_HANDLE hSession,
 		      CK_OBJECT_HANDLE hObject)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_destroy_object(hSession, hObject);
+	if (lib_initiated())
+		rv = ck_destroy_object(hSession, hObject);
 
 	switch (rv) {
 	case CKR_ACTION_PROHIBITED:
@@ -774,7 +765,7 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession,
 	(void)hObject;
 	(void)pulSize;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -785,12 +776,10 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession,
 			  CK_ATTRIBUTE_PTR pTemplate,
 			  CK_ULONG ulCount)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_get_attribute_value(hSession, hObject, pTemplate, ulCount);
+	if (lib_initiated())
+		rv = ck_get_attribute_value(hSession, hObject, pTemplate, ulCount);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -827,7 +816,7 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession,
 	(void)pTemplate;
 	(void)ulCount;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -837,12 +826,10 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession,
 			CK_ATTRIBUTE_PTR pTemplate,
 			CK_ULONG ulCount)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_find_objects_init(hSession, pTemplate, ulCount);
+	if (lib_initiated())
+		rv = ck_find_objects_init(hSession, pTemplate, ulCount);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -875,13 +862,11 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession,
 		    CK_ULONG_PTR pulObjectCount)
 
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_find_objects(hSession, phObject,
-			     ulMaxObjectCount, pulObjectCount);
+	if (lib_initiated())
+		rv = ck_find_objects(hSession, phObject,
+				     ulMaxObjectCount, pulObjectCount);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -907,12 +892,10 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession,
 
 CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_find_objects_final(hSession);
+	if (lib_initiated())
+		rv = ck_find_objects_final(hSession);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -939,12 +922,10 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
 		    CK_MECHANISM_PTR pMechanism,
 		    CK_OBJECT_HANDLE hKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_init(hSession, pMechanism, hKey, CK_FALSE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_init(hSession, pMechanism, hKey, CK_FALSE);
 
 	switch (rv) {
 	case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -982,14 +963,12 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
 		CK_BYTE_PTR pEncryptedData,
 		CK_ULONG_PTR pulEncryptedDataLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_oneshot(hSession, pData, ulDataLen,
-				   pEncryptedData, pulEncryptedDataLen,
-				   CK_FALSE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_oneshot(hSession, pData, ulDataLen,
+					   pEncryptedData, pulEncryptedDataLen,
+					   CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1022,14 +1001,12 @@ CK_RV C_EncryptUpdate(CK_SESSION_HANDLE hSession,
 		      CK_BYTE_PTR pEncryptedData,
 		      CK_ULONG_PTR pulEncryptedDataLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_update(hSession, pPart, ulPartLen,
-				  pEncryptedData,
-				  pulEncryptedDataLen, CK_FALSE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_update(hSession, pPart, ulPartLen,
+					  pEncryptedData,
+					  pulEncryptedDataLen, CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1060,13 +1037,11 @@ CK_RV C_EncryptFinal(CK_SESSION_HANDLE hSession,
 		     CK_BYTE_PTR pLastEncryptedPart,
 		     CK_ULONG_PTR pulLastEncryptedPartLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_final(hSession, pLastEncryptedPart,
-				 pulLastEncryptedPartLen, CK_FALSE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_final(hSession, pLastEncryptedPart,
+					 pulLastEncryptedPartLen, CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1097,12 +1072,10 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
 		    CK_MECHANISM_PTR pMechanism,
 		    CK_OBJECT_HANDLE hKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_init(hSession, pMechanism, hKey, CK_TRUE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_init(hSession, pMechanism, hKey, CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1141,14 +1114,12 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
 		CK_BYTE_PTR pData,
 		CK_ULONG_PTR pulDataLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_oneshot(hSession, pEncryptedData,
-				   ulEncryptedDataLen,
-				   pData, pulDataLen, CK_TRUE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_oneshot(hSession, pEncryptedData,
+					   ulEncryptedDataLen,
+					   pData, pulDataLen, CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1183,14 +1154,12 @@ CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession,
 		      CK_BYTE_PTR pPart,
 		      CK_ULONG_PTR pulPartLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_update(hSession, pEncryptedPart,
-				  ulEncryptedPartLen,
-				  pPart, pulPartLen, CK_TRUE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_update(hSession, pEncryptedPart,
+					  ulEncryptedPartLen,
+					  pPart, pulPartLen, CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1223,12 +1192,11 @@ CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession,
 		     CK_BYTE_PTR pLastPart,
 		     CK_ULONG_PTR pulLastPartLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_encdecrypt_final(hSession, pLastPart, pulLastPartLen, CK_TRUE);
+	if (lib_initiated())
+		rv = ck_encdecrypt_final(hSession, pLastPart, pulLastPartLen,
+					 CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1263,7 +1231,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession,
 	(void)hSession;
 	(void)pMechanism;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1281,7 +1249,7 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession,
 	(void)pDigest;
 	(void)pulDigestLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1295,7 +1263,7 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession,
 	(void)pPart;
 	(void)ulPartLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1307,7 +1275,7 @@ CK_RV C_DigestKey(CK_SESSION_HANDLE hSession,
 	(void)hSession;
 	(void)hKey;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1321,7 +1289,7 @@ CK_RV C_DigestFinal(CK_SESSION_HANDLE hSession,
 	(void)pDigest;
 	(void)pulDigestLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1331,12 +1299,10 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession,
 		 CK_MECHANISM_PTR pMechanism,
 		 CK_OBJECT_HANDLE hKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_init(hSession, pMechanism, hKey, CK_TRUE);
+	if (lib_initiated())
+		rv = ck_signverify_init(hSession, pMechanism, hKey, CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1375,14 +1341,12 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession,
 	     CK_BYTE_PTR pSignature,
 	     CK_ULONG_PTR pulSignatureLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_oneshot(hSession, pData, ulDataLen,
-				   pSignature, pulSignatureLen,
-				   CK_TRUE);
+	if (lib_initiated())
+		rv = ck_signverify_oneshot(hSession, pData, ulDataLen,
+					   pSignature, pulSignatureLen,
+					   CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1416,12 +1380,10 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession,
 		   CK_BYTE_PTR pPart,
 		   CK_ULONG ulPartLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_update(hSession, pPart, ulPartLen, CK_TRUE);
+	if (lib_initiated())
+		rv = ck_signverify_update(hSession, pPart, ulPartLen, CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1452,13 +1414,11 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession,
 		  CK_BYTE_PTR pSignature,
 		  CK_ULONG_PTR pulSignatureLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_final(hSession, pSignature, pulSignatureLen,
-				 CK_TRUE);
+	if (lib_initiated())
+		rv = ck_signverify_final(hSession, pSignature, pulSignatureLen,
+					 CK_TRUE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1495,7 +1455,7 @@ CK_RV C_SignRecoverInit(CK_SESSION_HANDLE hSession,
 	(void)pMechanism;
 	(void)hKey;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1513,7 +1473,7 @@ CK_RV C_SignRecover(CK_SESSION_HANDLE hSession,
 	(void)pSignature;
 	(void)pulSignatureLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1523,9 +1483,10 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession,
 		   CK_MECHANISM_PTR pMechanism,
 		   CK_OBJECT_HANDLE hKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	rv = ck_signverify_init(hSession, pMechanism, hKey, CK_FALSE);
+	if (lib_initiated())
+		rv = ck_signverify_init(hSession, pMechanism, hKey, CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1564,15 +1525,13 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession,
 	       CK_BYTE_PTR pSignature,
 	       CK_ULONG ulSignatureLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 	CK_ULONG out_size = ulSignatureLen;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_oneshot(hSession, pData, ulDataLen,
-				   pSignature, &out_size,
-				   CK_FALSE);
+	if (lib_initiated())
+		rv = ck_signverify_oneshot(hSession, pData, ulDataLen,
+					   pSignature, &out_size,
+					   CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1605,12 +1564,10 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession,
 		     CK_BYTE_PTR pPart,
 		     CK_ULONG ulPartLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_update(hSession, pPart, ulPartLen, CK_FALSE);
+	if (lib_initiated())
+		rv = ck_signverify_update(hSession, pPart, ulPartLen, CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1640,13 +1597,11 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession,
 		    CK_BYTE_PTR pSignature,
 		    CK_ULONG ulSignatureLen)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_signverify_final(hSession, pSignature, &ulSignatureLen,
-				 CK_FALSE);
+	if (lib_initiated())
+		rv = ck_signverify_final(hSession, pSignature, &ulSignatureLen,
+					 CK_FALSE);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1682,7 +1637,7 @@ CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE hSession,
 	(void)pMechanism;
 	(void)hKey;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1700,7 +1655,7 @@ CK_RV C_VerifyRecover(CK_SESSION_HANDLE hSession,
 	(void)pData;
 	(void)pulDataLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1718,7 +1673,7 @@ CK_RV C_DigestEncryptUpdate(CK_SESSION_HANDLE hSession,
 	(void)pEncryptedPart;
 	(void)pulEncryptedPartLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1736,7 +1691,7 @@ CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE hSession,
 	(void)pPart;
 	(void)pulPartLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1754,7 +1709,7 @@ CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE hSession,
 	(void)pEncryptedPart;
 	(void)pulEncryptedPartLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1772,7 +1727,7 @@ CK_RV C_DecryptVerifyUpdate(CK_SESSION_HANDLE hSession,
 	(void)pPart;
 	(void)pulPartLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1784,13 +1739,11 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
 		    CK_ULONG ulCount,
 		    CK_OBJECT_HANDLE_PTR phKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_generate_key(hSession, pMechanism, pTemplate, ulCount,
-			     phKey);
+	if (lib_initiated())
+		rv = ck_generate_key(hSession, pMechanism, pTemplate, ulCount,
+				     phKey);
 
 	switch (rv) {
 	case CKR_ARGUMENTS_BAD:
@@ -1836,12 +1789,12 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession,
 			CK_OBJECT_HANDLE_PTR phPublicKey,
 			CK_OBJECT_HANDLE_PTR phPrivateKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 	CK_ATTRIBUTE_PTR pub_attribs_n = NULL;
 	CK_ATTRIBUTE_PTR priv_attribs_n = NULL;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
+	if (!lib_initiated())
+		goto bail;
 
 	rv = ck_guess_key_type(pMechanism, pPublicKeyTemplate,
 			       &ulPublicKeyAttributeCount, &pub_attribs_n);
@@ -1914,7 +1867,7 @@ CK_RV C_WrapKey(CK_SESSION_HANDLE hSession,
 	(void)pWrappedKey;
 	(void)pulWrappedKeyLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1938,7 +1891,7 @@ CK_RV C_UnwrapKey(CK_SESSION_HANDLE hSession,
 	(void)ulCount;
 	(void)phKey;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -1951,12 +1904,10 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession,
 		  CK_ULONG ulCount,
 		  CK_OBJECT_HANDLE_PTR phKey)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_inited)
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
-
-	rv = ck_derive_key(hSession, pMechanism, hBaseKey, pTemplate,
+	if (lib_initiated())
+		rv = ck_derive_key(hSession, pMechanism, hBaseKey, pTemplate,
 				   ulCount, phKey);
 
 	switch (rv) {
@@ -2006,7 +1957,7 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession,
 	(void)pSeed;
 	(void)ulSeedLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -2020,7 +1971,7 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession,
 	(void)pRandomData;
 	(void)ulRandomLen;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -2030,7 +1981,7 @@ CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE hSession)
 {
 	(void)hSession;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -2040,12 +1991,11 @@ CK_RV C_CancelFunction(CK_SESSION_HANDLE hSession)
 {
 	(void)hSession;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
-
 
 CK_RV C_WaitForSlotEvent(CK_FLAGS flags,
 			 CK_SLOT_ID_PTR slotID,
@@ -2055,7 +2005,7 @@ CK_RV C_WaitForSlotEvent(CK_FLAGS flags,
 	(void)slotID;
 	(void)pReserved;
 
-	if (!lib_inited)
+	if (!lib_initiated())
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
