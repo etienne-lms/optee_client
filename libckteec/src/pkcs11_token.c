@@ -12,6 +12,7 @@
 
 #include "ck_helpers.h"
 #include "invoke_ta.h"
+#include "invoke_ta2.h"
 #include "local_utils.h"
 #include "pkcs11_token.h"
 
