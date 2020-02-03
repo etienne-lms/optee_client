@@ -255,6 +255,10 @@ CK_RV ckteec_invoke_init(void)
 
 	if (rv == CKR_OK) {
 		ta_ctx.initiated = true;
+
+		// Temporary
+		invoke_ta_open_primary_context(&ta_ctx.context, &ta_ctx.session);
+
 	} else {
 		TEEC_CloseSession(&ta_ctx.session);
 		TEEC_FinalizeContext(&ta_ctx.context);
@@ -289,6 +293,9 @@ CK_RV ckteec_invoke_terminate(void)
 	ta_ctx.initiated = false;
 	TEEC_CloseSession(&ta_ctx.session);
 	TEEC_FinalizeContext(&ta_ctx.context);
+
+	// Temporary
+	invoke_ta_close_primary_context();
 
 	rv = CKR_OK;
 

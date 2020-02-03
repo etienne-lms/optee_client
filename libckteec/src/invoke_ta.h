@@ -153,14 +153,9 @@ CK_RV ck_invoke_ta_in_in(struct sks_invoke *sks_ctx,
 		   void *in, size_t in_sz,
 		   void *in2, size_t in2_sz);
 
-/*
- * ta_invoke_init - Initialize TEE session with the TA
- *
- * Return 0 on success, non-zero on failure
- */
-int ta_invoke_init(void);
-
-/* sks_invoke_terminate - Release all allocated invocation resources */
-void sks_invoke_terminate(void);
+// Temporary
+void invoke_ta_open_primary_context(TEEC_Context *context,
+				    TEEC_Session *session);
+void invoke_ta_close_primary_context(void);
 
 #endif /*LIBCKTEEC_INVOKE_TA_H*/

@@ -11,79 +11,32 @@
 
 #include "ck_helpers.h"
 #include "invoke_ta.h"
+#include "invoke_ta2.h"
 #include "local_utils.h"
 
-/*
- * All requests (invocation of the PKCS11 TA) currently go through a
- * single GPD TEE session toward the PKCS11 TA.
- */
-struct sks_primary_context {
-	TEEC_Context context;
-	TEEC_Session session;
-};
-
-static struct sks_primary_context primary_ctx;
 static struct sks_invoke primary_invoke;
 
-static int open_primary_context(void)
+void invoke_ta_open_primary_context(TEEC_Context *context,
+				    TEEC_Session *session)
 {
-	TEEC_UUID uuid = PKCS11_TA_UUID;
-	uint32_t origin;
-	TEEC_Result res;
-
-	/* TODO: mutex */
-	if (primary_invoke.session)
-		return 0;
-
-	res = TEEC_InitializeContext(NULL, &primary_ctx.context);
-	if (res != TEEC_SUCCESS) {
-		LOG_ERROR("TEEC init context failed\n");
-		return -1;
-	}
-
-	/* TODO: application could provide a knwon login ID */
-	res = TEEC_OpenSession(&primary_ctx.context, &primary_ctx.session,
-				&uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &origin);
-	if (res != TEEC_SUCCESS) {
-		LOG_ERROR("TEEC open session failed %x from %d\n", res, origin);
-		TEEC_FinalizeContext(&primary_ctx.context);
-		return -1;
-	}
-
-	primary_invoke.context = &primary_ctx.context;
-	primary_invoke.session = &primary_ctx.session;
-
-	return 0;
+	primary_invoke.context = context;
+	primary_invoke.session = session;
 }
 
-static void close_primary_context(void)
+void invoke_ta_close_primary_context(void)
 {
-	/*  TODO: mutex */
-	if (!primary_invoke.session)
-		return;
-
-	TEEC_CloseSession(&primary_ctx.session);
-	TEEC_FinalizeContext(&primary_ctx.context);
 	primary_invoke.context = NULL;
 	primary_invoke.session = NULL;
 }
 
 static struct sks_invoke *get_invoke_context(struct sks_invoke *sks_ctx)
 {
-	struct sks_invoke *ctx = sks_ctx;
+	(void)sks_ctx;
 
-	if (open_primary_context())
+	if (!primary_invoke.session)
 		return NULL;
 
-	if (!ctx)
-		return &primary_invoke;
-
-	if (!ctx->context)
-		ctx->context = primary_invoke.context;
-	if (!ctx->session)
-		ctx->session = primary_invoke.session;
-
-	return ctx;
+	return &primary_invoke;
 }
 
 static TEEC_Context *teec_ctx(struct sks_invoke *sks_ctx)
@@ -328,36 +281,4 @@ CK_RV ck_invoke_ta_in_in(struct sks_invoke *sks_ctx,
 			 in, &in_sz, DIR_IN,
 			 in2, &in2_sz, DIR_IN,
 			 NULL, NULL, DIR_NONE);
-}
-
-int ta_invoke_init(void)
-{
-	TEEC_Session *sess = teec_sess(get_invoke_context(NULL));
-	TEEC_Operation op;
-	uint32_t origin;
-	TEEC_Result res;
-	uint32_t ta_version[3];
-
-	if (!sess)
-		return -1;
-
-	memset(&op, 0, sizeof(op));
-	op.params[2].tmpref.buffer = ta_version;
-	op.params[2].tmpref.size = sizeof(ta_version);
-	op.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE,
-					 TEEC_MEMREF_TEMP_OUTPUT, TEEC_NONE);
-
-	res = TEEC_InvokeCommand(sess, PKCS11_CMD_PING, &op, &origin);
-	if (res == TEEC_SUCCESS &&
-	    ta_version[0] == PKCS11_TA_VERSION_MAJOR &&
-	    ta_version[1] == PKCS11_TA_VERSION_MINOR &&
-	    ta_version[2] == PKCS11_TA_VERSION_PATCH)
-		return 0;
-
-	return -1;
-}
-
-void sks_invoke_terminate(void)
-{
-	close_primary_context();
 }

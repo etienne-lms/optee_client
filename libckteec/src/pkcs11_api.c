@@ -99,7 +99,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 	if (lib_inited)
 		return CKR_CRYPTOKI_ALREADY_INITIALIZED;
 
-	if (ta_invoke_init())
+	if (ckteec_invoke_init())
 		return CKR_FUNCTION_FAILED;
 
 	lib_inited = 1;
@@ -115,7 +115,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 	if (!lib_inited)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	sks_invoke_terminate();
+	ckteec_invoke_terminate();
 
 	lib_inited = 0;
 
