@@ -243,7 +243,7 @@ CK_RV ck_encdecrypt_update(CK_SESSION_HANDLE session,
 	/* Invoke */
 	rv = ckteec_invoke_ta(decrypt ? PKCS11_CMD_DECRYPT_UPDATE :
 			      PKCS11_CMD_ENCRYPT_UPDATE, ctrl,
-			      in_shm, NULL, out_shm, &out_size, NULL, NULL);
+			      in_shm, out_shm, &out_size, NULL, NULL);
 
 	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
@@ -306,7 +306,7 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 
 	rv = ckteec_invoke_ta(decrypt ? PKCS11_CMD_DECRYPT_ONESHOT :
 			      PKCS11_CMD_ENCRYPT_ONESHOT, ctrl,
-			      in_shm, NULL, out_shm, &out_size, NULL, NULL);
+			      in_shm, out_shm, &out_size, NULL, NULL);
 
 	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
@@ -686,7 +686,7 @@ CK_RV ck_signverify_oneshot(CK_SESSION_HANDLE session,
 
 	rv = ckteec_invoke_ta(sign ? PKCS11_CMD_SIGN_ONESHOT :
 			      PKCS11_CMD_VERIFY_ONESHOT, ctrl,
-			      io1, NULL, io2, &out_size, NULL, NULL);
+			      io1, io2, &out_size, NULL, NULL);
 
 	if (sign && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*sign_len = out_size;

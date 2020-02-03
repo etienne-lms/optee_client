@@ -114,7 +114,7 @@ static bool is_output_shm(TEEC_SharedMemory *shm)
 }
 
 CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
-		       TEEC_SharedMemory *io1, size_t *out1_size,
+		       TEEC_SharedMemory *io1,
 		       TEEC_SharedMemory *io2, size_t *out2_size,
 		       TEEC_SharedMemory *io3, size_t *out3_size)
 {
@@ -125,8 +125,7 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 	uint32_t ta_rc = PKCS11_CKR_ARGUMENTS_BAD;
 	CK_RV ck_rv = CKR_ARGUMENTS_BAD;
 
-	if ((is_output_shm(io1) && !out1_size) ||
-	    (is_output_shm(io2) && !out2_size) ||
+	if ((is_output_shm(io2) && !out2_size) ||
 	    (is_output_shm(io3) && !out3_size))
 		return CKR_ARGUMENTS_BAD;
 
@@ -169,8 +168,6 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 
 out:
 	if (ck_rv == CKR_OK || ck_rv == CKR_BUFFER_TOO_SMALL) {
-		if (is_output_shm(io1))
-			*out1_size = op.params[1].memref.size;
 		if (is_output_shm(io2))
 			*out2_size = op.params[2].memref.size;
 		if (is_output_shm(io3))

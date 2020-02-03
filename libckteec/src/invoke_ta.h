@@ -49,8 +49,7 @@ void ckteec_free_shm(TEEC_SharedMemory *shm);
  *
  * @cmd - PKCS11 TA command ID
  * @ctrl - shared memory with serialized request input arguments or NULL
- * @io1 - In and/or out memory buffer argument #1 for the command or NULL
- * @out1_size - Reference to @io1 output buffer size or NULL if not applicable
+ * @io1 - In memory buffer argument #1 for the command or NULL
  * @io2 - In and/or out memory buffer argument #2 for the command or NULL
  * @out2_size - Reference to @io2 output buffer size or NULL if not applicable
  * @io3 - In and/or out memory buffer argument #3 for the command or NULL
@@ -59,21 +58,21 @@ void ckteec_free_shm(TEEC_SharedMemory *shm);
  * Return a CR_RV compliant return value
  */
 CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
-		       TEEC_SharedMemory *io1, size_t *out1_size,
+		       TEEC_SharedMemory *io1,
 		       TEEC_SharedMemory *io2, size_t *out2_size,
 		       TEEC_SharedMemory *io3, size_t *out3_size);
 
 static inline CK_RV ckteec_invoke_ctrl(unsigned long cmd,
 				       TEEC_SharedMemory *ctrl)
 {
-	return ckteec_invoke_ta(cmd, ctrl, NULL, NULL, NULL, NULL, NULL, NULL);
+	return ckteec_invoke_ta(cmd, ctrl, NULL, NULL, NULL, NULL, NULL);
 }
 
 static inline CK_RV ckteec_invoke_ctrl_in(unsigned long cmd,
 					  TEEC_SharedMemory *ctrl,
 					  TEEC_SharedMemory *in)
 {
-	return ckteec_invoke_ta(cmd, ctrl, in, NULL, NULL, NULL, NULL, NULL);
+	return ckteec_invoke_ta(cmd, ctrl, in, NULL, NULL, NULL, NULL);
 }
 
 static inline CK_RV ckteec_invoke_ctrl_out(unsigned long cmd,
@@ -81,7 +80,7 @@ static inline CK_RV ckteec_invoke_ctrl_out(unsigned long cmd,
 					   TEEC_SharedMemory *out,
 					   size_t *out_sz)
 {
-	return ckteec_invoke_ta(cmd, ctrl, NULL, NULL, out, out_sz, NULL, NULL);
+	return ckteec_invoke_ta(cmd, ctrl, NULL, out, out_sz, NULL, NULL);
 }
 
 /*

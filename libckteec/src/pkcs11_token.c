@@ -72,7 +72,7 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 		return CKR_HOST_MEMORY;
 
 	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
-			      NULL, NULL, shm, &size, NULL, NULL);
+			      NULL, shm, &size, NULL, NULL);
 
 	if (rv != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
@@ -97,7 +97,7 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 		return CKR_HOST_MEMORY;
 
 	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
-			      NULL, NULL, shm, &size, NULL, NULL);
+			      NULL, shm, &size, NULL, NULL);
 
 	if (rv != CKR_OK || size != shm->size) {
 		rv = CKR_DEVICE_ERROR;
