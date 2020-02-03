@@ -809,36 +809,54 @@ CK_RV ck_find_objects(CK_SESSION_HANDLE session,
 			CK_ULONG_PTR count)
 
 {
-	CK_RV rv;
-	uint32_t ctrl[1] = { session };
-	uint32_t *handles;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out_shm = NULL;
+	uint32_t session_handle = session;
+	uint32_t *handles = NULL;
 	size_t handles_size = max_count * sizeof(uint32_t);
-	CK_ULONG n;
-	CK_ULONG last;
+	CK_ULONG n = 0;
+	CK_ULONG last = 0;
+	size_t out_size = 0;
 
 	if (!count || (*count && !obj))
 		return CKR_ARGUMENTS_BAD;
 
-	handles = malloc(handles_size);
-	if (!handles)
-		return CKR_HOST_MEMORY;
-
-	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session),
-				 PKCS11_CMD_FIND_OBJECTS, ctrl, sizeof(ctrl),
-				 NULL, 0, handles, &handles_size);
-
-	if (rv)
+	/* Shm io0: (in/out) ctrl = [session-handle] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
 		goto bail;
+	}
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
 
-	last = handles_size / sizeof(uint32_t);
-	*count = last;
-
-	for (n = 0; n < last; n++) {
-		obj[n] = handles[n];
+	/* Shm io2: (out) [object handle list] */
+	out_shm = ckteec_alloc_shm(handles_size, CKTEEC_SHM_OUT);
+	if (!out_shm) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
 
+	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_FIND_OBJECTS,
+				    ctrl, out_shm, &out_size);
+
+	if (rv || out_size != out_shm->size) {
+		if (rv == CKR_OK)
+			rv = CKR_DEVICE_ERROR;
+		goto bail;
+	}
+
+	handles = out_shm->buffer;
+	last = out_shm->size / sizeof(uint32_t);
+	*count = last;
+
+	for (n = 0; n < last; n++)
+		obj[n] = handles[n];
+
 bail:
-	free(handles);
+	ckteec_free_shm(ctrl);
+	ckteec_free_shm(out_shm);
+
 	return rv;
 
 }
