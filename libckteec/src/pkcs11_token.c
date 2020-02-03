@@ -399,23 +399,36 @@ bail:
 CK_RV ck_open_session(CK_SLOT_ID slot, CK_FLAGS flags, CK_VOID_PTR cookie,
 		          CK_NOTIFY callback, CK_SESSION_HANDLE_PTR session)
 {
-	uint32_t ctrl[1] = { slot };
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out = NULL;
+	uint32_t slot_id = slot;
 	unsigned long cmd;
 	uint32_t handle;
-	size_t out_sz = sizeof(handle);
-	CK_RV rv;
+	size_t out_size = 0;
 
 	if ((flags & ~(CKF_RW_SESSION | CKF_SERIAL_SESSION)) ||
 	    !session)
 		return CKR_ARGUMENTS_BAD;
 
-	/* Specific mandated flag */
-	if (!(flags & CKF_SERIAL_SESSION))
-		return CKR_SESSION_PARALLEL_NOT_SUPPORTED;
-
 	if (cookie || callback) {
 		LOG_ERROR("C_OpenSession does not handle callback yet\n");
 		return CKR_FUNCTION_NOT_SUPPORTED;
+	}
+
+	/* Shm io0: (in/out) ctrl = [slot-id] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(slot_id), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &slot_id, sizeof(slot_id));
+
+	/* Shm io2: (out) [session handle] */
+	out = ckteec_alloc_shm(sizeof(handle), CKTEEC_SHM_OUT);
+	if (!out) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
 
 	if (flags & CKF_RW_SESSION)
@@ -423,14 +436,21 @@ CK_RV ck_open_session(CK_SLOT_ID slot, CK_FLAGS flags, CK_VOID_PTR cookie,
 	else
 		cmd = PKCS11_CMD_OPEN_RO_SESSION;
 
-	rv = ck_invoke_ta_in_out(NULL, cmd, &ctrl, sizeof(ctrl),
-				 NULL, 0, &handle, &out_sz);
-	if (rv)
-		return rv;
+	rv = ckteec_invoke_ctrl_out(cmd, ctrl, out, &out_size);
+	if (rv != CKR_OK || out_size != out->size) {
+		if (rv == CKR_OK)
+			rv = CKR_DEVICE_ERROR;
+		goto bail;
+	}
 
+	memcpy(&handle, out->buffer, sizeof(handle));
 	*session = handle;
 
-	return CKR_OK;
+bail:
+	ckteec_free_shm(ctrl);
+	ckteec_free_shm(out);
+
+	return rv;
 }
 
 /**
