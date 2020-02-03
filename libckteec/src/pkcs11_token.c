@@ -458,10 +458,24 @@ bail:
  */
 CK_RV ck_close_session(CK_SESSION_HANDLE session)
 {
-	uint32_t ctrl[1] = { (uint32_t)session };
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	uint32_t session_handle = session;
 
-	return ck_invoke_ta(NULL, PKCS11_CMD_CLOSE_SESSION,
-			    &ctrl, sizeof(ctrl));
+	/* Shm io0: (in/out) ctrl = [session-handle] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_CLOSE_SESSION, ctrl);
+
+bail:
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
 
 /**
