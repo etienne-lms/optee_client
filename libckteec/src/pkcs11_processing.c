@@ -871,11 +871,20 @@ bail:
 
 CK_RV ck_find_objects_final(CK_SESSION_HANDLE session)
 {
-	CK_RV rv;
-	uint32_t ctrl[1] = { session };
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	uint32_t session_handle = session;
 
-	rv = ck_invoke_ta(ck_session2sks_ctx(session),
-			  PKCS11_CMD_FIND_OBJECTS_FINAL, ctrl, sizeof(ctrl));
+	/* Shm io0: (in/out) ctrl = [session-handle] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
+	if (!ctrl)
+		return CKR_HOST_MEMORY;
+
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_FIND_OBJECTS_FINAL, ctrl);
+
+	ckteec_free_shm(ctrl);
 
 	return rv;
 }
