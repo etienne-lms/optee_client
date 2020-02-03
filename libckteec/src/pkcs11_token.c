@@ -224,32 +224,42 @@ bail:
 CK_RV ck_init_token(CK_SLOT_ID slot, CK_UTF8CHAR_PTR pin,
 		    CK_ULONG pin_len, CK_UTF8CHAR_PTR label)
 {
-	uint32_t pkcs11_slot = slot;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	uint32_t slot_id = slot;
 	uint32_t pkcs11_pin_len = pin_len;
-	size_t ctrl_size = 2 * sizeof(uint32_t) + pkcs11_pin_len +
-			   32 * sizeof(uint8_t);
-	char *ctrl;
-	size_t offset;
+	size_t ctrl_size = 0;
+	char *buf = NULL;
 
 	if (!pin || !label)
 		return CKR_ARGUMENTS_BAD;
 
-	ctrl = malloc(ctrl_size);
+	/* Shm io0: (in/out) ctrl = [slot-id][pin_len][label][pin] / [status] */
+	ctrl_size = sizeof(slot_id) + sizeof(pkcs11_pin_len) + 32 * sizeof(uint8_t) +
+		    pkcs11_pin_len;
+
+	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
 	if (!ctrl)
 		return CKR_HOST_MEMORY;
 
-	memcpy(ctrl, &pkcs11_slot, sizeof(uint32_t));
-	offset = sizeof(uint32_t);
+	buf = ctrl->buffer;
 
-	memcpy(ctrl + offset, &pkcs11_pin_len, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
+	memcpy(buf, &slot_id, sizeof(slot_id));
+	buf += sizeof(slot_id);
 
-	memcpy(ctrl + offset, pin, pkcs11_pin_len);
-	offset += pkcs11_pin_len;
+	memcpy(buf, &pkcs11_pin_len, sizeof(pkcs11_pin_len));
+	buf += sizeof(pkcs11_pin_len);
 
-	memcpy(ctrl + offset, label, 32 * sizeof(uint8_t));
+	memcpy(buf, label, 32 * sizeof(uint8_t));
+	buf += 32 * sizeof(uint8_t);
 
-	return ck_invoke_ta(NULL, PKCS11_CMD_INIT_TOKEN, ctrl, ctrl_size);
+	memcpy(buf, pin, pkcs11_pin_len);
+
+	rv = ckteec_invoke_ctrl(PKCS11_CMD_INIT_TOKEN, ctrl);
+
+	ckteec_free_shm(ctrl);
+
+	return rv;
 }
 
 /**
