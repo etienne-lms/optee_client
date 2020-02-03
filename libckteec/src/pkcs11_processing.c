@@ -333,31 +333,46 @@ CK_RV ck_encdecrypt_final(CK_SESSION_HANDLE session,
 			  CK_ULONG_PTR out_len,
 			  int decrypt)
 {
-	CK_RV rv;
-	uint32_t ctrl;
-	size_t ctrl_size;
-	void *out_buf = out;
-	size_t out_size;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
+	TEEC_SharedMemory *out_shm = NULL;
+	uint32_t session_handle = session;
+	size_t out_size = 0;
 
 	if (out_len && *out_len && !out)
 		return CKR_ARGUMENTS_BAD;
 
-	/* params = [session-handle] */
-	ctrl = session;
-	ctrl_size = sizeof(ctrl);
+	/* Shm io0: (in/out) ctrl = [session-handle] / [status] */
+	ctrl = ckteec_alloc_shm(sizeof(session_handle), CKTEEC_SHM_INOUT);
+	if (!ctrl) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
 
-	if (!out_len)
-		out_size = 0;
-	else
-		out_size = *out_len;
+	/* Shm io2: output buffer reference */
+	if (out_len && *out_len) {
+		out_shm = ckteec_register_shm(out, *out_len, CKTEEC_SHM_OUT);
+	} else {
+		/* Query output data size */
+		out_shm = ckteec_alloc_shm(0, CKTEEC_SHM_OUT);
+	}
 
-	rv = ck_invoke_ta_in_out(ck_session2sks_ctx(session), decrypt ?
-				 PKCS11_CMD_DECRYPT_FINAL : PKCS11_CMD_ENCRYPT_FINAL,
-				 &ctrl, ctrl_size, NULL, 0,
-				 out_buf, out_len ? &out_size : NULL);
+	if (!out_shm) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
+	}
+
+	rv = ckteec_invoke_ctrl_out(decrypt ? PKCS11_CMD_DECRYPT_FINAL :
+				    PKCS11_CMD_ENCRYPT_FINAL,
+				    ctrl, out_shm, &out_size);
 
 	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
+
+bail:
+	ckteec_free_shm(out_shm);
+	ckteec_free_shm(ctrl);
 
 	return rv;
 }
