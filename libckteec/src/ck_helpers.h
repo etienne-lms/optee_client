@@ -47,6 +47,8 @@ CK_RV ta2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
 		       struct pkcs11_token_info *ta_info);
 CK_RV ta2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
 		      struct pkcs11_slot_info *ta_info);
+CK_RV ta2ck_session_info(CK_SESSION_INFO *info,
+			 struct pkcs11_session_info *ta_info);
 
 /* Backward compat on deprecated functions */
 static inline CK_RV ta2ck_attribute_id(CK_ATTRIBUTE_TYPE *ck, uint32_t ta_id)

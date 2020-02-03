@@ -118,6 +118,17 @@ CK_RV ta2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
 	return CKR_OK;
 }
 
+CK_RV ta2ck_session_info(CK_SESSION_INFO_PTR ck_info,
+			 struct pkcs11_session_info *ta_info)
+{
+	ck_info->slotID = ta_info->slot_id;
+	ck_info->state = ta_info->state;
+	ck_info->flags = ta_info->flags;
+	ck_info->ulDeviceError = ta_info->error_code;
+
+	return CKR_OK;
+}
+
 /*
  * Helpers for conversion of CK IDs to/from PKCS11 TA IDs: tables of identifiers
  *
