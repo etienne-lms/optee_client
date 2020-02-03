@@ -556,12 +556,13 @@ CK_RV ck_signverify_init(CK_SESSION_HANDLE session,
 			 CK_OBJECT_HANDLE key,
 			 int sign)
 {
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	TEEC_SharedMemory *ctrl = NULL;
 	struct serializer obj;
 	uint32_t session_handle = session;
 	uint32_t key_handle = key;
-	char *ctrl = NULL;
-	size_t ctrl_size;
+	size_t ctrl_size = 0;
+	char *buf = NULL;
 
 	if (!mechanism)
 		return CKR_ARGUMENTS_BAD;
@@ -570,25 +571,35 @@ CK_RV ck_signverify_init(CK_SESSION_HANDLE session,
 	if (rv)
 		return rv;
 
-	/* params = [session-handle][key-handle][serialized-mechanism-blob] */
-	ctrl_size = 2 * sizeof(uint32_t) + obj.size;
-	ctrl = malloc(ctrl_size);
+	/*
+	 * Shm io0: (in/out) ctrl
+	 * (in) [session-handle][key-handle][serialized-mechanism-blob]
+	 * (out) [status]
+	 */
+	ctrl_size = sizeof(session_handle) + sizeof(key_handle) + obj.size;
+	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
 	if (!ctrl) {
 		rv = CKR_HOST_MEMORY;
 		goto bail;
 	}
 
-	memcpy(ctrl, &session_handle, sizeof(uint32_t));
-	memcpy(ctrl + sizeof(uint32_t), &key_handle, sizeof(uint32_t));
-	memcpy(ctrl + 2 * sizeof(uint32_t), obj.buffer, obj.size);
+	buf = ctrl->buffer;
 
-	rv = ck_invoke_ta(ck_session2sks_ctx(session), sign ?
-			  PKCS11_CMD_SIGN_INIT : PKCS11_CMD_VERIFY_INIT,
-			  ctrl, ctrl_size);
+	memcpy(buf, &session_handle, sizeof(session_handle));
+	buf += sizeof(session_handle);
+
+	memcpy(buf, &key_handle, sizeof(key_handle));
+	buf += sizeof(key_handle);
+
+	memcpy(buf, obj.buffer, obj.size);
+
+	rv = ckteec_invoke_ctrl(sign ? PKCS11_CMD_SIGN_INIT :
+				PKCS11_CMD_VERIFY_INIT, ctrl);
 
 bail:
-	free(ctrl);
+	ckteec_free_shm(ctrl);
 	release_serial_object(&obj);
+
 	return rv;
 }
 
