@@ -8,6 +8,7 @@
 #define BINARY_PREFIX		"ckteec"
 #endif
 
+#include <inttypes.h>
 #include <pkcs11.h>
 #include <pkcs11_ta.h>
 #include <pthread.h>
@@ -124,8 +125,11 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 	TEEC_Result res = TEEC_ERROR_GENERIC;
 	uint32_t ta_rc = PKCS11_CKR_ARGUMENTS_BAD;
 	CK_RV ck_rv = CKR_ARGUMENTS_BAD;
+	uint32_t status = 0;
 
-	if ((is_output_shm(io2) && !out2_size) ||
+	if ((ctrl && !(ctrl->flags & TEEC_MEM_INPUT &&
+		       ctrl->flags & TEEC_MEM_OUTPUT)) ||
+	    (is_output_shm(io2) && !out2_size) ||
 	    (is_output_shm(io3) && !out3_size))
 		return CKR_ARGUMENTS_BAD;
 
@@ -134,6 +138,10 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 	if (ctrl) {
 		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, 0, 0, 0);
 		op.params[0].memref.parent = ctrl;
+	} else {
+		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INOUT, 0, 0, 0);
+		op.params[0].tmpref.buffer = &status;
+		op.params[0].tmpref.size = sizeof(status);
 	}
 
 	if (io1) {
@@ -158,11 +166,17 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 	}
 
 	/* Get PKCS11 TA return value from ctrl buffer */
-	if (ctrl && (ctrl->flags & TEEC_MEM_OUTPUT) &&
-	    op.params[0].memref.size == sizeof(ta_rc))
-		memcpy(&ta_rc, ctrl->buffer, sizeof(ta_rc));
-	else
-		ta_rc = PKCS11_CKR_OK;
+	if (ctrl) {
+		if (op.params[0].memref.size == sizeof(ta_rc))
+			memcpy(&ta_rc, ctrl->buffer, sizeof(ta_rc));
+		else
+			ta_rc = PKCS11_CKR_OK;
+	} else {
+		if (op.params[0].tmpref.size == sizeof(ta_rc))
+			ta_rc = status;
+		else
+			ta_rc = PKCS11_CKR_OK;
+	}
 
 	ck_rv = ta2ck_rv(ta_rc);
 
@@ -183,30 +197,35 @@ static CK_RV ping_ta(void)
 	uint32_t origin;
 	TEEC_Result res;
 	uint32_t ta_version[3];
+	uint32_t status;
 
 	memset(&op, 0, sizeof(op));
+	op.params[0].tmpref.buffer = &status;
+	op.params[0].tmpref.size = sizeof(status);
 	op.params[2].tmpref.buffer = ta_version;
 	op.params[2].tmpref.size = sizeof(ta_version);
-	op.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE,
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INOUT, TEEC_NONE,
 					 TEEC_MEMREF_TEMP_OUTPUT, TEEC_NONE);
 
 	res = TEEC_InvokeCommand(&ta_ctx.session, PKCS11_CMD_PING, &op,
 				 &origin);
-	if (res != TEEC_SUCCESS)
+
+	if (res != TEEC_SUCCESS ||
+	    origin != TEEC_ORIGIN_TRUSTED_APP ||
+	    op.params[0].tmpref.size != sizeof(status) ||
+	    status != PKCS11_CKR_OK)
 		return CKR_DEVICE_ERROR;
 
 	if (ta_version[0] != PKCS11_TA_VERSION_MAJOR &&
 	    ta_version[1] > PKCS11_TA_VERSION_MINOR) {
-		EMSG("PKCS11 TA version mismatch: %u.%u.%u",
-		     (unsigned int)ta_version[0],
-		     (unsigned int)ta_version[1],
-		     (unsigned int)ta_version[2]);
+		EMSG("PKCS11 TA version mismatch: %"PRIu32".%"PRIu32".%"PRIu32,
+		     ta_version[0], ta_version[1], ta_version[2]);
 
 		return CKR_DEVICE_ERROR;
 	}
 
-	DMSG("PKCS11 TA version %u.%u.%u", (unsigned int)ta_version[0],
-	     (unsigned int)ta_version[1], (unsigned int)ta_version[2]);
+	DMSG("PKCS11 TA version %"PRIu32".%"PRIu32".%"PRIu32,
+	     ta_version[0], ta_version[1], ta_version[2]);
 
 	return CKR_OK;
 }
