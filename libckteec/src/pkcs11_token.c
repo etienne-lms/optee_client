@@ -74,7 +74,7 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
 			      NULL, shm, &size, NULL, NULL);
 
-	if (rv != CKR_BUFFER_TOO_SMALL)
+	if (rv != CKR_OK && rv != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
 
 	if (!slots || *count < (size / sizeof(uint32_t))) {
