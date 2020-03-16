@@ -236,7 +236,7 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 		for (m = 0; m < n; m++) {
 			CK_MECHANISM_TYPE *type = attr->pValue;
 
-			pkcs11_data32 = ck2ta_mechanism_type(type[m]);
+			pkcs11_data32 = type[m];
 			if (pkcs11_data32 == PKCS11_UNDEFINED_ID) {
 				free(pkcs11_pdata);
 				return CKR_MECHANISM_INVALID;
@@ -867,7 +867,7 @@ static CK_RV serialize_mecha_rsa_oaep_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_mechanism_type(params->hashAlg));
+	rv = serialize_32b(obj, params->hashAlg);
 	if (rv)
 		return rv;
 
@@ -903,7 +903,7 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_mechanism_type(params->hashAlg));
+	rv = serialize_32b(obj, params->hashAlg);
 	if (rv)
 		return rv;
 
@@ -934,7 +934,7 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_mechanism_type(oaep_p->hashAlg));
+	rv = serialize_32b(obj, oaep_p->hashAlg);
 	if (rv)
 		return rv;
 
@@ -978,7 +978,7 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 	obj->object = PKCS11_CKO_MECHANISM;
 
 	memcpy(&mecha, mechanism, sizeof(mecha));
-	obj->type = ck2ta_mechanism_type(mecha.mechanism);
+	obj->type = mecha.mechanism;
 	if (obj->type == PKCS11_UNDEFINED_ID)
 		return CKR_MECHANISM_INVALID;
 

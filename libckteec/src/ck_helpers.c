@@ -468,6 +468,7 @@ CK_RV teec2ck_rv(TEEC_Result res)
 		return CKR_FUNCTION_FAILED;
 	}
 }
+
 /* Convert a array of mechanism type from PKCS11 TA IDs into CK_MECHANIMS_TYPE */
 CK_RV ta2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst,
 				 void *src, size_t count)
@@ -475,40 +476,11 @@ CK_RV ta2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst,
 	CK_MECHANISM_TYPE *ck = dst;
 	char *ta_src = src;
 	size_t n = 0;
-	uint32_t proc = 0;
+	uint32_t mecha_id = 0;
 
-	for (n = 0; n < count; n++, ta_src += sizeof(uint32_t), ck++) {
-		memcpy(&proc, ta_src, sizeof(proc));
-		if (ta2ck_mechanism_type(ck, proc))
-			return CKR_MECHANISM_INVALID;
-	}
-
-	return CKR_OK;
-}
-
-/* Convert structure CK_MECHANIMS_INFO from PKCS11 to CK IDs (3 ulong fields) */
-CK_RV ta2ck_mechanism_info(CK_MECHANISM_INFO *info, void *src)
-{
-	struct pkcs11_mechanism_info ta_info;
-	CK_FLAGS ck_flag = 0;
-	uint32_t mask = 0;
-	CK_RV rv = 0;
-
-	memcpy(&ta_info, src, sizeof(ta_info));
-
-	info->ulMinKeySize = ta_info.min_key_size;
-	info->ulMaxKeySize = ta_info.max_key_size;
-
-	info->flags = 0;
-	for (mask = 1; mask; mask <<= 1) {
-		if (!(ta_info.flags & mask))
-			continue;
-
-		rv = ta2ck_mechanism_flag(&ck_flag, mask);
-		if (rv)
-			return rv;
-
-		info->flags |= ck_flag;
+	for (n = 0; n < count; n++, ta_src += sizeof(mecha_id), ck++) {
+		memcpy(&mecha_id, ta_src, sizeof(mecha_id));
+		dst[n] = mecha_id;
 	}
 
 	return CKR_OK;
@@ -579,7 +551,7 @@ uint32_t ck2ta_type_in_class(CK_ULONG ck, CK_ULONG class)
 	case CKO_OTP_KEY:
 		return ck2ta_key_type(ck);
 	case CKO_MECHANISM:
-		return ck2ta_mechanism_type(ck);
+		return ck;
 	case CKO_CERTIFICATE:
 	default:
 		return PKCS11_UNDEFINED_ID;
@@ -597,7 +569,8 @@ CK_RV ta2ck_type_in_class(CK_ULONG *ck, uint32_t ta_id, CK_ULONG class)
 	case PKCS11_CKO_OTP_KEY:
 		return ta2ck_key_type(ck, ta_id);
 	case PKCS11_CKO_MECHANISM:
-		return ta2ck_mechanism_type(ck, ta_id);
+		*ck = ta_id;
+		return CKR_OK;
 	case PKCS11_CKO_CERTIFICATE:
 	default:
 		return CKR_GENERAL_ERROR;
