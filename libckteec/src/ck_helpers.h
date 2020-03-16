@@ -41,11 +41,8 @@ void ckteec_assert_expected_rv(const char *function, CK_RV rv,
 	uint32_t ck2ta_ ## _label(_ck_typeof ck);	\
 	CK_RV ta2ck_ ## _label(_ck_typeof *ck, uint32_t ta_id)
 
-DECLARE_CK2TA_FUNCTIONS(slot_flag, CK_FLAGS);
-DECLARE_CK2TA_FUNCTIONS(token_flag, CK_FLAGS);
 DECLARE_CK2TA_FUNCTIONS(user_type, CK_USER_TYPE);
 DECLARE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
-DECLARE_CK2TA_FUNCTIONS(mechanism_flag, CK_FLAGS);
 DECLARE_CK2TA_FUNCTIONS(object_class, CK_OBJECT_CLASS);
 DECLARE_CK2TA_FUNCTIONS(key_type, CK_KEY_TYPE);
 DECLARE_CK2TA_FUNCTIONS(ec_kdf_type, CK_EC_KDF_TYPE);
@@ -59,10 +56,6 @@ DECLARE_CK2TA_FUNCTIONS(rsa_pkcs_oaep_source_type,
  *
  * struct pkcs11_token_info is defined in the PKCS11 TA API.
  */
-CK_RV ta2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
-		       struct pkcs11_token_info *ta_info);
-CK_RV ta2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
-		      struct pkcs11_slot_info *ta_info);
 CK_RV ta2ck_session_info(CK_SESSION_INFO *info,
 			 struct pkcs11_session_info *ta_info);
 
@@ -89,7 +82,6 @@ static inline uint32_t ck2ta_class(CK_OBJECT_CLASS ck)
 
 CK_RV ta2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst, void *ta_data,
 				 size_t count);
-CK_RV ta2ck_mechanism_info(CK_MECHANISM_INFO *info, void *ta_data);
 
 uint32_t ck2ta_type_in_class(CK_ULONG ck, CK_ULONG class);
 CK_RV ta2ck_type_in_class(CK_ULONG *ck, uint32_t ta_id, CK_ULONG ta_class);
