@@ -14,33 +14,44 @@
 #include "local_utils.h"
 #include "pkcs11_token.h"
 
-#define PKCS11_SLOT_MANUFACTURER		"Linaro"
-
-#define PADDED_STRING_COPY(_dst, _src) \
-	do { \
-		memset((char *)_dst, ' ', sizeof(_dst)); \
-		strncpy((char *)_dst, _src, sizeof(_dst)); \
-	} while (0)
+#define PKCS11_LIB_MANUFACTURER		"Linaro"
+#define PKCS11_LIB_DESCRIPTION		"OP-TEE PKCS11 Cryptoki library"
 
 /**
  * ck_get_info - Get local information for C_GetInfo
  */
 CK_RV ck_get_info(CK_INFO_PTR info)
 {
-	const CK_VERSION ck_version = { 2, 40 };
-	const char manuf_id[] = PKCS11_SLOT_MANUFACTURER; // TODO slot?
-	const CK_FLAGS flags = 0;	/* must be zero per the PKCS#11 2.40 */
-	const char lib_description[] = "OP-TEE PKCS11 Cryptoki client library";
-	const CK_VERSION lib_version = { 0, 0 };
+	const CK_INFO lib_info = {
+		.cryptokiVersion = {
+			CK_PKCS11_VERSION_MAJOR,
+			CK_PKCS11_VERSION_MINOR,
+		},
+		.manufacturerID = PKCS11_LIB_MANUFACTURER,
+		.flags = 0,		/* must be zero per the PKCS#11 2.40 */
+		.libraryDescription = PKCS11_LIB_DESCRIPTION,
+		.libraryVersion = {
+			PKCS11_TA_VERSION_MAJOR,
+			PKCS11_TA_VERSION_MINOR
+		},
+	};
+	int n = 0;
 
 	if (!info)
 		return CKR_ARGUMENTS_BAD;
 
-	info->cryptokiVersion = ck_version;
-	PADDED_STRING_COPY(info->manufacturerID, manuf_id);
-	info->flags = flags;
-	PADDED_STRING_COPY(info->libraryDescription, lib_description);
-	info->libraryVersion = lib_version;
+	*info = lib_info;
+
+	/* Pad strings with blank characters */
+	n = strnlen((char *)info->manufacturerID,
+		    sizeof(info->manufacturerID));
+	memset(&info->manufacturerID[n], ' ',
+	       sizeof(info->manufacturerID) - n);
+
+	n = strnlen((char *)info->libraryDescription,
+		    sizeof(info->libraryDescription));
+	memset(&info->libraryDescription[n], ' ',
+	       sizeof(info->libraryDescription) - n);
 
 	return CKR_OK;
 }
@@ -53,44 +64,25 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 {
 	CK_RV rv = CKR_GENERAL_ERROR;
 	TEEC_SharedMemory *shm = NULL;
+	uint32_t *slot_ids = NULL;
+	size_t client_count = 0;
 	size_t size = 0;
-	unsigned int n = 0;
 
-	/* Discard present: all are present */
+	/* Discard @present: all slots reported by TA are present */
 	(void)present;
 
-	if (!count || (*count && !slots))
+	if (!count)
 		return CKR_ARGUMENTS_BAD;
 
 	/*
-	 * Invoke first time to get slot ID table size
-	 * Shm io2: (out) [slot-list]
+	 * As per spec, if @slots is NULL, "The contents of *pulCount on
+	 * entry to C_GetSlotList has no meaning in this case (...)"
 	 */
-	shm = ckteec_alloc_shm(0, CKTEEC_SHM_OUT);
-	if (!shm)
-		return CKR_HOST_MEMORY;
+	if (slots)
+		client_count = *count;
 
-	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
-			      NULL, shm, &size, NULL, NULL);
+	size = client_count * sizeof(*slot_ids);
 
-	if (rv != CKR_OK && rv != CKR_BUFFER_TOO_SMALL)
-		return CKR_DEVICE_ERROR;
-
-	if (!slots || *count < (size / sizeof(uint32_t))) {
-		*count = size / sizeof(uint32_t);
-		if (!slots)
-			rv = CKR_OK;
-		else
-			rv = CKR_BUFFER_TOO_SMALL;
-
-		goto bail;
-	}
-
-	/*
-	 * Invoke now to get effect slot ID table
-	 * Shm io2: (out) [slot-list]
-	 */
-	ckteec_free_shm(shm);
 	shm = ckteec_alloc_shm(size, CKTEEC_SHM_OUT);
 	if (!shm)
 		return CKR_HOST_MEMORY;
@@ -98,22 +90,31 @@ CK_RV ck_slot_get_list(CK_BBOOL present,
 	rv = ckteec_invoke_ta(PKCS11_CMD_SLOT_LIST, NULL,
 			      NULL, shm, &size, NULL, NULL);
 
-	if (rv != CKR_OK || size != shm->size) {
-		rv = CKR_DEVICE_ERROR;
-		goto bail;
+	if (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL) {
+		/*
+		 * When @slot != NULL and @count[0] == 0, library shall
+		 * return CKR_BUFFER_TOO_SMALL if provided buffer is too
+		 * small whereas TA would have returned CKR_OK since
+		 * allocating a zero sized shm instance results in a NULL
+		 * shm buffer reference.
+		 */
+		if (size && slots && !client_count)
+			rv = CKR_BUFFER_TOO_SMALL;
+
+		*count = size / sizeof(*slot_ids);
+
+		if (rv == CKR_OK && slots) {
+			size_t n = 0;
+
+			slot_ids = shm->buffer;
+			for (n = 0; n < *count; n++)
+				slots[n] = slot_ids[n];
+		}
 	}
 
-	for (n = 0; n < (size / sizeof(uint32_t)); n++)
-		slots[n] = *((uint32_t *)shm->buffer + n);
-
-	*count = size / sizeof(uint32_t);
-	rv = CKR_OK;
-
-bail:
 	ckteec_free_shm(shm);
 
 	return rv;
-
 }
 
 /**
@@ -125,40 +126,57 @@ CK_RV ck_slot_get_info(CK_SLOT_ID slot, CK_SLOT_INFO_PTR info)
 	TEEC_SharedMemory *ctrl = NULL;
 	TEEC_SharedMemory *out = NULL;
 	uint32_t slot_id = slot;
+	struct pkcs11_slot_info *ta_info = NULL;
 	size_t out_size = 0;
 
 	if (!info)
 		return CKR_ARGUMENTS_BAD;
 
-	/* Shm io0: (in/out) ctrl = [slot-id] / [status] */
 	ctrl = ckteec_alloc_shm(sizeof(slot_id), CKTEEC_SHM_INOUT);
 	if (!ctrl) {
 		rv = CKR_HOST_MEMORY;
-		goto bail;
+		goto out;
 	}
 	memcpy(ctrl->buffer, &slot_id, sizeof(slot_id));
 
-	/* Shm io2: (out) [pkcs11 slot info] */
-	out = ckteec_alloc_shm(sizeof(struct pkcs11_slot_info),
-			       CKTEEC_SHM_OUT);
+	out = ckteec_alloc_shm(sizeof(*ta_info), CKTEEC_SHM_OUT);
 	if (!out) {
 		rv = CKR_HOST_MEMORY;
-		goto bail;
+		goto out;
 	}
 
 	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_SLOT_INFO, ctrl, out, &out_size);
 	if (rv != CKR_OK || out_size != out->size) {
 		if (rv == CKR_OK)
 			rv = CKR_DEVICE_ERROR;
-		goto bail;
+		goto out;
 	}
 
-	if (ta2ck_slot_info(info, (struct pkcs11_slot_info *)out->buffer)) {
-		LOG_ERROR("unexpected bad token info structure\n");
-		rv = CKR_DEVICE_ERROR;
-	}
+	ta_info = out->buffer;
 
-bail:
+	COMPILE_TIME_ASSERT(sizeof(info->slotDescription) ==
+			    sizeof(ta_info->slot_description));
+	memcpy(info->slotDescription, ta_info->slot_description,
+	       sizeof(info->slotDescription));
+
+	COMPILE_TIME_ASSERT(sizeof(info->manufacturerID) ==
+			    sizeof(ta_info->manufacturer_id));
+	memcpy(info->manufacturerID, ta_info->manufacturer_id,
+	       sizeof(info->manufacturerID));
+
+	info->flags = ta_info->flags;
+
+	COMPILE_TIME_ASSERT(sizeof(info->hardwareVersion) ==
+			    sizeof(ta_info->hardware_version));
+	memcpy(&info->hardwareVersion, ta_info->hardware_version,
+	       sizeof(info->hardwareVersion));
+
+	COMPILE_TIME_ASSERT(sizeof(info->firmwareVersion) ==
+			    sizeof(ta_info->firmware_version));
+	memcpy(&info->firmwareVersion, ta_info->firmware_version,
+	       sizeof(info->firmwareVersion));
+
+out:
 	ckteec_free_shm(ctrl);
 	ckteec_free_shm(out);
 
@@ -180,36 +198,73 @@ CK_RV ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 	if (!info)
 		return CKR_ARGUMENTS_BAD;
 
-	/* Shm io0: (in/out) ctrl = [slot-id] / [status] */
 	ctrl = ckteec_alloc_shm(sizeof(slot_id), CKTEEC_SHM_INOUT);
 	if (!ctrl) {
 		rv = CKR_HOST_MEMORY;
-		goto bail;
+		goto out;
 	}
 	memcpy(ctrl->buffer, &slot_id, sizeof(slot_id));
 
-	/* Shm io2: (out) [pkcs11 slot info] */
 	out_shm = ckteec_alloc_shm(sizeof(*ta_info), CKTEEC_SHM_OUT);
 	if (!out_shm) {
 		rv = CKR_HOST_MEMORY;
-		goto bail;
+		goto out;
 	}
 
 	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_TOKEN_INFO, ctrl,
 				    out_shm, &out_size);
 	if (rv)
-		goto bail;
+		goto out;
 
 	if (out_size != out_shm->size) {
 		rv = CKR_DEVICE_ERROR;
-		goto bail;
+		goto out;
 	}
 
 	ta_info = out_shm->buffer;
 
-	rv = ta2ck_token_info(info, ta_info);
+	COMPILE_TIME_ASSERT(sizeof(info->label) == sizeof(ta_info->label));
+	memcpy(info->label, ta_info->label, sizeof(info->label));
 
-bail:
+	COMPILE_TIME_ASSERT(sizeof(info->manufacturerID) ==
+			    sizeof(ta_info->manufacturer_id));
+	memcpy(info->manufacturerID, ta_info->manufacturer_id,
+	       sizeof(info->manufacturerID));
+
+	COMPILE_TIME_ASSERT(sizeof(info->model) == sizeof(ta_info->model));
+	memcpy(info->model, ta_info->model, sizeof(info->model));
+
+	COMPILE_TIME_ASSERT(sizeof(info->serialNumber) ==
+			    sizeof(ta_info->serial_number));
+	memcpy(info->serialNumber, ta_info->serial_number,
+	       sizeof(info->serialNumber));
+
+	info->flags = ta_info->flags;
+	info->ulMaxSessionCount = ta_info->max_session_count;
+	info->ulSessionCount = ta_info->session_count;
+	info->ulMaxRwSessionCount = ta_info->max_rw_session_count;
+	info->ulRwSessionCount = ta_info->rw_session_count;
+	info->ulMaxPinLen = ta_info->max_pin_len;
+	info->ulMinPinLen = ta_info->min_pin_len;
+	info->ulTotalPublicMemory = ta_info->total_public_memory;
+	info->ulFreePublicMemory = ta_info->free_public_memory;
+	info->ulTotalPrivateMemory = ta_info->total_private_memory;
+	info->ulFreePrivateMemory = ta_info->free_private_memory;
+
+	COMPILE_TIME_ASSERT(sizeof(info->hardwareVersion) ==
+			    sizeof(ta_info->hardware_version));
+	memcpy(&info->hardwareVersion, ta_info->hardware_version,
+	       sizeof(info->hardwareVersion));
+
+	COMPILE_TIME_ASSERT(sizeof(info->firmwareVersion) ==
+			    sizeof(ta_info->firmware_version));
+	memcpy(&info->firmwareVersion, ta_info->firmware_version,
+	       sizeof(info->firmwareVersion));
+
+	COMPILE_TIME_ASSERT(sizeof(info->utcTime) == sizeof(ta_info->utc_time));
+	memcpy(&info->utcTime, ta_info->utc_time, sizeof(info->utcTime));
+
+out:
 	ckteec_free_shm(ctrl);
 	ckteec_free_shm(out_shm);
 
@@ -543,11 +598,10 @@ CK_RV ck_get_session_info(CK_SESSION_HANDLE session,
 	}
 
 	ta_info = (struct pkcs11_session_info *)out->buffer;
-
-	if (ta2ck_session_info(info, ta_info)) {
-		LOG_ERROR("unexpected bad mechanism info structure\n");
-		rv = CKR_DEVICE_ERROR;
-	}
+	info->slotID = ta_info->slot_id;
+	info->state = ta_info->state;
+	info->flags = ta_info->flags;
+	info->ulDeviceError = ta_info->device_error;
 
 bail:
 	ckteec_free_shm(ctrl);
