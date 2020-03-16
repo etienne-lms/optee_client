@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: BSD-2-Clause
 /*
  * Copyright (c) 2017-2020, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
  */
 
 #include <ck_debug.h>
@@ -382,94 +381,93 @@ const char *ta_cmd2str(unsigned int id)
 	}
 }
 
-static struct ck2str slotflag2str_table[] = {
-	CK2STR_ENTRY_TBL(CKF_TOKEN_PRESENT),
-	CK2STR_ENTRY_TBL(CKF_REMOVABLE_DEVICE),
-	CK2STR_ENTRY_TBL(CKF_HW_SLOT),
-};
-
-static const char *slot_flags2str(CK_ULONG flags)
+const char *slot_ckf2str(CK_ULONG flag)
 {
-	const int count = sizeof(slotflag2str_table) / sizeof(struct ck2str);
-	int n;
-
-	for (n = 0; n < count; n++) {
-		if (flags & slotflag2str_table[n].id)
-			return slotflag2str_table[n].string;
+	switch (flag) {
+	CK2STR_ENTRY(CKF_TOKEN_PRESENT);
+	CK2STR_ENTRY(CKF_REMOVABLE_DEVICE);
+	CK2STR_ENTRY(CKF_HW_SLOT);
+	default:
+		return "Unknown flag";
 	}
-
-	return NULL;
 }
 
-static struct ck2str tokenflag2str_table[] = {
-	CK2STR_ENTRY_TBL(CKF_RNG),
-	CK2STR_ENTRY_TBL(CKF_WRITE_PROTECTED),
-	CK2STR_ENTRY_TBL(CKF_LOGIN_REQUIRED),
-	CK2STR_ENTRY_TBL(CKF_USER_PIN_INITIALIZED),
-	CK2STR_ENTRY_TBL(CKF_RESTORE_KEY_NOT_NEEDED),
-	CK2STR_ENTRY_TBL(CKF_CLOCK_ON_TOKEN),
-	CK2STR_ENTRY_TBL(CKF_PROTECTED_AUTHENTICATION_PATH),
-	CK2STR_ENTRY_TBL(CKF_DUAL_CRYPTO_OPERATIONS),
-	CK2STR_ENTRY_TBL(CKF_TOKEN_INITIALIZED),
-	CK2STR_ENTRY_TBL(CKF_SECONDARY_AUTHENTICATION),
-	CK2STR_ENTRY_TBL(CKF_USER_PIN_COUNT_LOW),
-	CK2STR_ENTRY_TBL(CKF_USER_PIN_FINAL_TRY),
-	CK2STR_ENTRY_TBL(CKF_USER_PIN_LOCKED),
-	CK2STR_ENTRY_TBL(CKF_USER_PIN_TO_BE_CHANGED),
-	CK2STR_ENTRY_TBL(CKF_SO_PIN_COUNT_LOW),
-	CK2STR_ENTRY_TBL(CKF_SO_PIN_FINAL_TRY),
-	CK2STR_ENTRY_TBL(CKF_SO_PIN_LOCKED),
-	CK2STR_ENTRY_TBL(CKF_SO_PIN_TO_BE_CHANGED),
-	CK2STR_ENTRY_TBL(CKF_ERROR_STATE),
-};
-
-static const char *token_flags2str(CK_ULONG flags)
+const char *token_ckf2str(CK_ULONG flag)
 {
-	const int count = sizeof(tokenflag2str_table) / sizeof(struct ck2str);
-	int n;
-
-	for (n = 0; n < count; n++) {
-		if (flags & tokenflag2str_table[n].id)
-			return tokenflag2str_table[n].string;
+	switch (flag) {
+	CK2STR_ENTRY(CKF_RNG);
+	CK2STR_ENTRY(CKF_WRITE_PROTECTED);
+	CK2STR_ENTRY(CKF_LOGIN_REQUIRED);
+	CK2STR_ENTRY(CKF_USER_PIN_INITIALIZED);
+	CK2STR_ENTRY(CKF_RESTORE_KEY_NOT_NEEDED);
+	CK2STR_ENTRY(CKF_CLOCK_ON_TOKEN);
+	CK2STR_ENTRY(CKF_PROTECTED_AUTHENTICATION_PATH);
+	CK2STR_ENTRY(CKF_DUAL_CRYPTO_OPERATIONS);
+	CK2STR_ENTRY(CKF_TOKEN_INITIALIZED);
+	CK2STR_ENTRY(CKF_SECONDARY_AUTHENTICATION);
+	CK2STR_ENTRY(CKF_USER_PIN_COUNT_LOW);
+	CK2STR_ENTRY(CKF_USER_PIN_FINAL_TRY);
+	CK2STR_ENTRY(CKF_USER_PIN_LOCKED);
+	CK2STR_ENTRY(CKF_USER_PIN_TO_BE_CHANGED);
+	CK2STR_ENTRY(CKF_SO_PIN_COUNT_LOW);
+	CK2STR_ENTRY(CKF_SO_PIN_FINAL_TRY);
+	CK2STR_ENTRY(CKF_SO_PIN_LOCKED);
+	CK2STR_ENTRY(CKF_SO_PIN_TO_BE_CHANGED);
+	CK2STR_ENTRY(CKF_ERROR_STATE);
+	default:
+		return "Unknown flag";
 	}
-
-	return NULL;
 }
 
-static struct ck2str mechaflag2str_table[] = {
-	CK2STR_ENTRY_TBL(CKF_HW),
-	CK2STR_ENTRY_TBL(CKF_ENCRYPT),
-	CK2STR_ENTRY_TBL(CKF_DECRYPT),
-	CK2STR_ENTRY_TBL(CKF_DIGEST),
-	CK2STR_ENTRY_TBL(CKF_SIGN),
-	CK2STR_ENTRY_TBL(CKF_SIGN_RECOVER),
-	CK2STR_ENTRY_TBL(CKF_VERIFY),
-	CK2STR_ENTRY_TBL(CKF_VERIFY_RECOVER),
-	CK2STR_ENTRY_TBL(CKF_GENERATE),
-	CK2STR_ENTRY_TBL(CKF_GENERATE_KEY_PAIR),
-	CK2STR_ENTRY_TBL(CKF_WRAP),
-	CK2STR_ENTRY_TBL(CKF_UNWRAP),
-	CK2STR_ENTRY_TBL(CKF_DERIVE),
-	CK2STR_ENTRY_TBL(CKF_EC_F_P),
-	CK2STR_ENTRY_TBL(CKF_EC_F_2M),
-	CK2STR_ENTRY_TBL(CKF_EC_ECPARAMETERS),
-	CK2STR_ENTRY_TBL(CKF_EC_NAMEDCURVE),
-	CK2STR_ENTRY_TBL(CKF_EC_UNCOMPRESS),
-	CK2STR_ENTRY_TBL(CKF_EC_COMPRESS),
-	CK2STR_ENTRY_TBL(CKF_EXTENSION),
-};
-
-static const char *mecha_flags2str(CK_ULONG flags)
+const char *mecha_ckf2str(CK_ULONG flag)
 {
-	const int count = sizeof(mechaflag2str_table) / sizeof(struct ck2str);
-	int n;
-
-	for (n = 0; n < count; n++) {
-		if (flags & mechaflag2str_table[n].id)
-			return mechaflag2str_table[n].string;
+	switch (flag) {
+	CK2STR_ENTRY(CKF_HW);
+	CK2STR_ENTRY(CKF_ENCRYPT);
+	CK2STR_ENTRY(CKF_DECRYPT);
+	CK2STR_ENTRY(CKF_DIGEST);
+	CK2STR_ENTRY(CKF_SIGN);
+	CK2STR_ENTRY(CKF_SIGN_RECOVER);
+	CK2STR_ENTRY(CKF_VERIFY);
+	CK2STR_ENTRY(CKF_VERIFY_RECOVER);
+	CK2STR_ENTRY(CKF_GENERATE);
+	CK2STR_ENTRY(CKF_GENERATE_KEY_PAIR);
+	CK2STR_ENTRY(CKF_WRAP);
+	CK2STR_ENTRY(CKF_UNWRAP);
+	CK2STR_ENTRY(CKF_DERIVE);
+	CK2STR_ENTRY(CKF_EC_F_P);
+	CK2STR_ENTRY(CKF_EC_F_2M);
+	CK2STR_ENTRY(CKF_EC_ECPARAMETERS);
+	CK2STR_ENTRY(CKF_EC_NAMEDCURVE);
+	CK2STR_ENTRY(CKF_EC_UNCOMPRESS);
+	CK2STR_ENTRY(CKF_EC_COMPRESS);
+	CK2STR_ENTRY(CKF_EXTENSION);
+	default:
+		return "Unknown flag";
 	}
+}
 
-	return NULL;
+const char *session_ckf2str(CK_ULONG flag)
+{
+	switch (flag) {
+	CK2STR_ENTRY(CKF_RW_SESSION);
+	CK2STR_ENTRY(CKF_SERIAL_SESSION);
+	default:
+		return "Unknown flag";
+	}
+}
+
+const char *session_cks2str(CK_ULONG flag)
+{
+	switch (flag) {
+	CK2STR_ENTRY(CKS_RO_PUBLIC_SESSION);
+	CK2STR_ENTRY(CKS_RO_USER_FUNCTIONS);
+	CK2STR_ENTRY(CKS_RW_PUBLIC_SESSION);
+	CK2STR_ENTRY(CKS_RW_USER_FUNCTIONS);
+	CK2STR_ENTRY(CKS_RW_SO_FUNCTIONS);
+	default:
+		return "Unknown flag";
+	}
 }
 
 enum ck_debug_flag_type {
@@ -496,13 +494,13 @@ static char *__flag2str(CK_ULONG flags, enum ck_debug_flag_type type)
 
 		switch(type) {
 		case CKDBG_SLOT:
-			label = slot_flags2str(mask);
+			label = slot_ckf2str(mask);
 			break;
 		case CKDBG_TOKEN:
-			label = token_flags2str(mask);
+			label = token_ckf2str(mask);
 			break;
 		case CKDBG_MECHA:
-			label = mecha_flags2str(mask);
+			label = mecha_ckf2str(mask);
 			break;
 		default:
 			return NULL;

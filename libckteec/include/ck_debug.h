@@ -17,6 +17,21 @@ const char *ckr2str(CK_RV id);
 /* ckm2str - Return string buffer of "CKM_xxx\0" for a mechanism ID */
 const char *ckm2str(CK_MECHANISM_TYPE id);
 
+/* slot_ckf2str - Return string buffer of "CKF_xxx\0" for a slot flag */
+const char *slot_ckf2str(CK_ULONG flag);
+
+/* token_ckf2str - Return string buffer "CKF_xxx\0" for a token flag */
+const char *token_ckf2str(CK_ULONG flag);
+
+/* mecha_ckf2str - Return string buffer "CKF_xxx\0" for a mechanism flag */
+const char *mecha_ckf2str(CK_ULONG flag);
+
+/* session_ckf2str - Return string buffer "CKF_xxx\0" for a session flag */
+const char *session_ckf2str(CK_ULONG flag);
+
+/* mecha_ckf2str - Return string buffer "CKS_xxx\0" for a session state */
+const char *session_cks2str(CK_ULONG flag);
+
 char *ck_slot_flag2str(CK_ULONG flags);
 char *ck_token_flag2str(CK_ULONG flags);
 char *ck_mecha_flag2str(CK_ULONG flags);
