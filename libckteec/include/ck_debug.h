@@ -1,7 +1,6 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
 /*
  * Copyright (c) 2018-2020, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
  */
 
 #ifndef LIBCKTEEC_CK_DEBUG_H
@@ -15,10 +14,9 @@ const char *cka2str(CK_ATTRIBUTE_TYPE id);
 /* Return a pointer to a string buffer of "CKR_xxx\0" return value ID */
 const char *ckr2str(CK_RV id);
 
-/* Return a pointer to a string buffer of "CKM_xxx\0" mechanism ID */
+/* ckm2str - Return string buffer of "CKM_xxx\0" for a mechanism ID */
 const char *ckm2str(CK_MECHANISM_TYPE id);
 
-/* Allocate and return a string descripbing the enabled flags */
 char *ck_slot_flag2str(CK_ULONG flags);
 char *ck_token_flag2str(CK_ULONG flags);
 char *ck_mecha_flag2str(CK_ULONG flags);

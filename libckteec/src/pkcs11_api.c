@@ -133,9 +133,6 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 {
 	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!pInfo)
-		return CKR_ARGUMENTS_BAD;
-
 	if (lib_initiated())
 		rv = ck_get_info(pInfo);
 

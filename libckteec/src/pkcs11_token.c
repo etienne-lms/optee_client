@@ -1,11 +1,10 @@
+// SPDX-License-Identifier: BSD-2-Clause
 /*
  * Copyright (c) 2017-2020, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include <pkcs11.h>
 #include <ck_debug.h>
+#include <pkcs11.h>
 #include <pkcs11_ta.h>
 #include <stdlib.h>
 #include <string.h>

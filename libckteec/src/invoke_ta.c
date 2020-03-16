@@ -123,25 +123,27 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 	TEEC_Operation op;
 	uint32_t origin = 0;
 	TEEC_Result res = TEEC_ERROR_GENERIC;
-	uint32_t ta_rc = PKCS11_CKR_ARGUMENTS_BAD;
-	CK_RV ck_rv = CKR_ARGUMENTS_BAD;
-	uint32_t status = 0;
+	uint32_t ta_rc = PKCS11_CKR_GENERAL_ERROR;
 
-	if ((ctrl && !(ctrl->flags & TEEC_MEM_INPUT &&
-		       ctrl->flags & TEEC_MEM_OUTPUT)) ||
-	    (is_output_shm(io2) && !out2_size) ||
+	if ((is_output_shm(io2) && !out2_size) ||
 	    (is_output_shm(io3) && !out3_size))
 		return CKR_ARGUMENTS_BAD;
 
 	memset(&op, 0, sizeof(op));
 
+	if (ctrl && !(ctrl->flags & TEEC_MEM_INPUT &&
+		      ctrl->flags & TEEC_MEM_OUTPUT))
+		return CKR_ARGUMENTS_BAD;
+
 	if (ctrl) {
 		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, 0, 0, 0);
 		op.params[0].memref.parent = ctrl;
 	} else {
-		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INOUT, 0, 0, 0);
-		op.params[0].tmpref.buffer = &status;
-		op.params[0].tmpref.size = sizeof(status);
+		/* TA mandates param#0 as in/out memref for output status */
+		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INOUT,
+						  0, 0, 0);
+		op.params[0].tmpref.buffer = &ta_rc;
+		op.params[0].tmpref.size = sizeof(ta_rc);
 	}
 
 	if (io1) {
@@ -160,35 +162,34 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 	}
 
 	res = TEEC_InvokeCommand(&ta_ctx.session, command, &op, &origin);
-	if (res) {
-		ck_rv = teec2ck_rv(res);
-		goto out;
+	switch (res) {
+	case TEEC_SUCCESS:
+		/* Get PKCS11 TA return value from ctrl buffer */
+		if (ctrl) {
+			if (op.params[0].memref.size == sizeof(ta_rc))
+				memcpy(&ta_rc, ctrl->buffer, sizeof(ta_rc));
+		} else {
+			if (op.params[0].tmpref.size != sizeof(ta_rc))
+				ta_rc = PKCS11_CKR_GENERAL_ERROR;
+		}
+		break;
+	case TEEC_ERROR_SHORT_BUFFER:
+		ta_rc = CKR_BUFFER_TOO_SMALL;
+		break;
+	case TEEC_ERROR_OUT_OF_MEMORY:
+		return CKR_DEVICE_MEMORY;
+	default:
+		return CKR_GENERAL_ERROR;
 	}
 
-	/* Get PKCS11 TA return value from ctrl buffer */
-	if (ctrl) {
-		if (op.params[0].memref.size == sizeof(ta_rc))
-			memcpy(&ta_rc, ctrl->buffer, sizeof(ta_rc));
-		else
-			ta_rc = PKCS11_CKR_OK;
-	} else {
-		if (op.params[0].tmpref.size == sizeof(ta_rc))
-			ta_rc = status;
-		else
-			ta_rc = PKCS11_CKR_OK;
-	}
-
-	ck_rv = ta2ck_rv(ta_rc);
-
-out:
-	if (ck_rv == CKR_OK || ck_rv == CKR_BUFFER_TOO_SMALL) {
+	if (ta_rc == CKR_OK || ta_rc == CKR_BUFFER_TOO_SMALL) {
 		if (is_output_shm(io2))
 			*out2_size = op.params[2].memref.size;
 		if (is_output_shm(io3))
 			*out3_size = op.params[3].memref.size;
 	}
 
-	return ck_rv;
+	return ta_rc;
 }
 
 static CK_RV ping_ta(void)
