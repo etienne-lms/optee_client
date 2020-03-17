@@ -745,6 +745,34 @@ struct pkcs11_token_info {
 #define PKCS11_CKFT_ERROR_STATE				(1U << 24)
 
 /*
+ * Values for 32bit session flags argument to PKCS11_CMD_OPEN_SESSION
+ * and pkcs11_session_info::flags.
+ * PKCS11_CKFSS_<x> reflects CryptoKi client API session flags CKF_<x>.
+ */
+#define PKCS11_CKFSS_RW_SESSION				(1U << 1)
+#define PKCS11_CKFSS_SERIAL_SESSION			(1U << 2)
+
+/*
+ * Arguments for PKCS11_CMD_SESSION_INFO
+ */
+
+struct pkcs11_session_info {
+	uint32_t slot_id;
+	uint32_t state;
+	uint32_t flags;
+	uint32_t device_error;
+};
+
+/* Valid values for pkcs11_session_info::state */
+enum pkcs11_session_state {
+	PKCS11_CKS_RO_PUBLIC_SESSION = 0,
+	PKCS11_CKS_RO_USER_FUNCTIONS = 1,
+	PKCS11_CKS_RW_PUBLIC_SESSION = 2,
+	PKCS11_CKS_RW_USER_FUNCTIONS = 3,
+	PKCS11_CKS_RW_SO_FUNCTIONS = 4,
+};
+
+/*
  * Arguments for PKCS11_CMD_MECHANISM_INFO
  */
 
@@ -1064,35 +1092,6 @@ enum pkcs11_mgf_id {
  * PKCS11_CKZ_<x> reltaes to cryptoki CKZ_<x>.
  */
 #define PKCS11_CKZ_DATA_SPECIFIED		0x0001
-
-/*
- * Values for 32bit session flags argument to PKCS11_CMD_OPEN_SESSION
- * and pkcs11_session_info::flags.
- * PKCS11_CKFSS_<x> reflects CryptoKi client API session flags CKF_<x>.
- */
-#define PKCS11_CKFSS_RW_SESSION			(1 << 1)
-#define PKCS11_CKFSS_SERIAL_SESSION		(1 << 2)
-
-/*
- * Arguments for PKCS11_CMD_SESSION_INFO
- */
-
-struct pkcs11_session_info {
-	uint32_t slot_id;
-	uint32_t state;
-	uint32_t flags;
-	uint32_t device_error;
-};
-
-/* Valid values for pkcs11_session_info::state */
-enum pkcs11_session_state_next {
-	PKCS11_CKS_RO_PUBLIC_SESSION = 0,
-	PKCS11_CKS_RO_USER_FUNCTIONS = 1,
-	PKCS11_CKS_RW_PUBLIC_SESSION = 2,
-	PKCS11_CKS_RW_USER_FUNCTIONS = 3,
-	PKCS11_CKS_RW_SO_FUNCTIONS = 4,
-};
-
 
 /*
  * Values for user identifier parameter in PKCS11_CMD_LOGIN
