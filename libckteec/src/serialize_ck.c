@@ -100,10 +100,10 @@ static CK_RV serialize_ulong_ck_ref(struct serializer *obj, void *ck_ref)
 static CK_RV serialize_indirect_attribute(struct serializer *obj,
 					  CK_ATTRIBUTE_PTR attribute)
 {
-	CK_ATTRIBUTE_PTR attr;
-	CK_ULONG count;
-	CK_RV rv;
-	struct serializer obj2;
+	CK_ATTRIBUTE_PTR attr = NULL;
+	CK_ULONG count = 0;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	struct serializer obj2 = { };
 
 	switch (attribute->type) {
 	/* These are serialized each seperately */
@@ -145,9 +145,9 @@ static CK_RV serialize_indirect_attribute(struct serializer *obj,
 static CK_RV deserialize_indirect_attribute(struct pkcs11_attribute_head *obj,
 					    CK_ATTRIBUTE_PTR attribute)
 {
-	CK_ULONG count;
-	CK_ATTRIBUTE_PTR attr;
-	CK_RV rv;
+	CK_ULONG count = 0;
+	CK_ATTRIBUTE_PTR attr = NULL;
+	CK_RV rv = CKR_GENERAL_ERROR;
 
 	switch (attribute->type) {
 	/* These are serialized each seperately */
@@ -186,13 +186,13 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 {
 	uint32_t pkcs11_id = PKCS11_UNDEFINED_ID;
 	uint32_t pkcs11_size = 0;
-	uint32_t pkcs11_data32;
-	void *pkcs11_pdata;
+	uint32_t pkcs11_data32 = 0;
+	void *pkcs11_pdata = NULL;
 	int pkcs11_pdata_alloced = 0;
 	CK_ULONG ck_ulong = 0;		/* keep compiler happy */
-	CK_RV rv;
-	unsigned int n;
-	unsigned int m;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	unsigned int n = 0;
+	unsigned int m = 0;
 
 	/* Expect only those from the identification table */
 	pkcs11_id = attr->type;
@@ -319,12 +319,12 @@ static CK_RV get_type(struct serializer *obj, struct ck_ref *ref,
 static CK_RV get_boolprop(struct serializer *obj,
 			  struct ck_ref *ref, uint32_t *sanity)
 {
-	int shift;
-	uint32_t mask;
-	uint32_t value;
-	uint32_t *boolprop_ptr;
-	uint32_t *sanity_ptr;
-	CK_BBOOL bbool;
+	int shift = 0;
+	uint32_t mask = 0;
+	uint32_t value = 0;
+	uint32_t *boolprop_ptr = NULL;
+	uint32_t *sanity_ptr = NULL;
+	CK_BBOOL bbool = CK_FALSE;
 
 	/* Get the boolean property shift position and value */
 	shift = ck_attr2boolprop_shift(ref->id);
@@ -588,8 +588,8 @@ static CK_RV serialize_mecha_aes_ctr(struct serializer *obj,
 				     CK_MECHANISM_PTR mecha)
 {
 	CK_AES_CTR_PARAMS_PTR param = mecha->pParameter;
-	CK_RV rv;
-	uint32_t size;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	uint32_t size = 0;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -634,8 +634,8 @@ static CK_RV serialize_mecha_aes_gcm(struct serializer *obj,
 				     CK_MECHANISM_PTR mecha)
 {
 	CK_GCM_PARAMS_PTR param = mecha->pParameter;
-	CK_RV rv;
-	CK_ULONG aad_len;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	CK_ULONG aad_len = 0;
 
 	/* AAD is not manadatory */
 	if (param->pAAD)
@@ -688,7 +688,7 @@ static CK_RV serialize_mecha_aes_ccm(struct serializer *obj,
 				     CK_MECHANISM_PTR mecha)
 {
 	CK_CCM_PARAMS_PTR param = mecha->pParameter;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -726,7 +726,7 @@ static CK_RV serialize_mecha_aes_iv(struct serializer *obj,
 				    CK_MECHANISM_PTR mecha)
 {
 	uint32_t iv_size = mecha->ulParameterLen;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -742,9 +742,9 @@ static CK_RV serialize_mecha_aes_iv(struct serializer *obj,
 static CK_RV serialize_mecha_ulong_param(struct serializer *obj,
 					 CK_MECHANISM_PTR mecha)
 {
-	CK_RV rv;
-	uint32_t pkcs11_data;
-	CK_ULONG ck_data;
+	CK_RV rv = CKR_GENERAL_ERROR;
+	uint32_t pkcs11_data = 0;
+	CK_ULONG ck_data = 0;
 
 	memcpy(&ck_data, mecha->pParameter, mecha->ulParameterLen);
 	pkcs11_data = ck_data;
@@ -764,7 +764,7 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 						CK_MECHANISM_PTR mecha)
 {
 	CK_ECDH1_DERIVE_PARAMS *params = mecha->pParameter;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 	size_t params_size = 3 * sizeof(uint32_t) + params->ulSharedDataLen +
 				params->ulPublicDataLen;
 
@@ -801,7 +801,7 @@ static CK_RV serialize_mecha_ecdh_aes_key_wrap_param(struct serializer *obj,
 						     CK_MECHANISM_PTR mecha)
 {
 	CK_ECDH_AES_KEY_WRAP_PARAMS *params = mecha->pParameter;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 	size_t params_size = 3 * sizeof(uint32_t) + params->ulSharedDataLen;
 
 	rv = serialize_32b(obj, obj->type);
@@ -832,7 +832,7 @@ static CK_RV serialize_mecha_rsa_oaep_param(struct serializer *obj,
 					    CK_MECHANISM_PTR mecha)
 {
 	CK_RSA_PKCS_OAEP_PARAMS *params = mecha->pParameter;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 	size_t params_size = 4 * sizeof(uint32_t) + params->ulSourceDataLen;
 
 	rv = serialize_32b(obj, obj->type);
@@ -867,7 +867,7 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 					   CK_MECHANISM_PTR mecha)
 {
 	CK_RSA_PKCS_PSS_PARAMS *params = mecha->pParameter;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 	size_t params_size = 3 * sizeof(uint32_t);
 
 	rv = serialize_32b(obj, obj->type);
@@ -894,7 +894,7 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 {
 	CK_RSA_AES_KEY_WRAP_PARAMS *params = mecha->pParameter;
 	CK_RSA_PKCS_OAEP_PARAMS *oaep_p = params->pOAEPParams;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 	size_t params_size = 5 * sizeof(uint32_t) + params->pOAEPParams->ulSourceDataLen;
 
 	rv = serialize_32b(obj, obj->type);
@@ -944,8 +944,8 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 CK_RV serialize_ck_mecha_params(struct serializer *obj,
 				CK_MECHANISM_PTR mechanism)
 {
-	CK_MECHANISM mecha;
-	CK_RV rv;
+	CK_MECHANISM mecha = { };
+	CK_RV rv = CKR_GENERAL_ERROR;
 
 	memset(obj, 0, sizeof(*obj));
 
@@ -1043,7 +1043,7 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 static CK_RV trace_attributes(char *prefix, void *src, void *end)
 {
 	size_t next = 0;
-	char *prefix2;
+	char *prefix2 = NULL;
 	size_t prefix_len = strlen(prefix);
 	char *cur = src;
 
@@ -1054,7 +1054,7 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 	*(prefix2 + prefix_len + 1 + 4) = '\0';
 
 	for (; cur < (char *)end; cur += next) {
-		struct pkcs11_attribute_head ref;
+		struct pkcs11_attribute_head ref = { };
 
 		memcpy(&ref, cur, sizeof(ref));
 		next = sizeof(ref) + ref.size;
@@ -1088,9 +1088,9 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 
 CK_RV serial_trace_attributes_from_head(char *prefix, void *ref)
 {
-	struct pkcs11_object_head head;
-	char *pre;
-	CK_RV rv;
+	struct pkcs11_object_head head = { };
+	char *pre = NULL;
+	CK_RV rv = CKR_GENERAL_ERROR;
 
 	memcpy(&head, ref, sizeof(head));
 
