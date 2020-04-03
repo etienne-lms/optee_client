@@ -211,7 +211,6 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 	case CKA_WRAP_TEMPLATE:
 	case CKA_UNWRAP_TEMPLATE:
 		return serialize_indirect_attribute(obj, attr);
-
 	case CKA_ALLOWED_MECHANISMS:
 		n = attr->ulValueLen / sizeof(CK_ULONG);
 		pkcs11_size = n * sizeof(uint32_t);
@@ -651,7 +650,7 @@ static CK_RV serialize_mecha_aes_gcm(struct serializer *obj,
 		return rv;
 
 	rv = serialize_32b(obj, 3 * sizeof(uint32_t) +
-				param->ulIvLen + aad_len);
+			   param->ulIvLen + aad_len);
 	if (rv)
 		return rv;
 
@@ -695,7 +694,7 @@ static CK_RV serialize_mecha_aes_ccm(struct serializer *obj,
 		return rv;
 
 	rv = serialize_32b(obj, 4 * sizeof(uint32_t) +
-				param->ulNonceLen + param->ulAADLen);
+			   param->ulNonceLen + param->ulAADLen);
 	if (rv)
 		return rv;
 
@@ -785,7 +784,7 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 		return rv;
 
 	rv = serialize_buffer(obj, params->pSharedData,
-				params->ulSharedDataLen);
+			      params->ulSharedDataLen);
 	if (rv)
 		return rv;
 
