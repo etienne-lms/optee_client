@@ -488,13 +488,28 @@ out:
 	return rv;
 }
 
+static CK_RV deserialize_mecha_list(CK_MECHANISM_TYPE *dst, void *src,
+				    size_t count)
+{
+	char *ta_src = src;
+	size_t n = 0;
+	uint32_t mecha_id = 0;
+
+	for (n = 0; n < count; n++) {
+		memcpy(&mecha_id, ta_src + n * sizeof(mecha_id),
+		       sizeof(mecha_id));
+		dst[n] = mecha_id;
+	}
+
+	return CKR_OK;
+}
+
 static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 				      CK_ATTRIBUTE_PTR out)
 {
-	CK_ULONG ck_ulong;
+	CK_ULONG ck_ulong = 0;
 	uint32_t pkcs11_data32 = 0;
-	size_t n;
-	CK_RV rv;
+	CK_RV rv = CKR_GENERAL_ERROR;
 
 	rv = ta2ck_attribute_type(&(out->type), in->id);
 	if (rv)
@@ -538,8 +553,8 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 		break;
 
 	case CKA_ALLOWED_MECHANISMS:
-		n = out->ulValueLen / sizeof(CK_ULONG);
-		rv = ta2ck_mechanism_type_list(out->pValue, in->data, n);
+		rv = deserialize_mecha_list(out->pValue, in->data,
+					    out->ulValueLen / sizeof(CK_ULONG));
 		break;
 
 	/* Attributes which data value do not need conversion (aside ulong) */

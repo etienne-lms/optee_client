@@ -287,23 +287,6 @@ CK_RV teec2ck_rv(TEEC_Result res)
 	}
 }
 
-/* Convert a array of mechanism type from PKCS11 TA IDs into CK_MECHANIMS_TYPE */
-CK_RV ta2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst,
-				 void *src, size_t count)
-{
-	CK_MECHANISM_TYPE *ck = dst;
-	char *ta_src = src;
-	size_t n = 0;
-	uint32_t mecha_id = 0;
-
-	for (n = 0; n < count; n++, ta_src += sizeof(mecha_id), ck++) {
-		memcpy(&mecha_id, ta_src, sizeof(mecha_id));
-		dst[n] = mecha_id;
-	}
-
-	return CKR_OK;
-}
-
 /*
  * Helper functions to analyse CK fields
  */

@@ -79,9 +79,6 @@ static inline uint32_t ck2ta_class(CK_OBJECT_CLASS ck)
 	return ck2ta_object_class(ck);
 }
 
-CK_RV ta2ck_mechanism_type_list(CK_MECHANISM_TYPE *dst, void *ta_data,
-				 size_t count);
-
 uint32_t ck2ta_type_in_class(CK_ULONG ck, CK_ULONG class);
 CK_RV ta2ck_type_in_class(CK_ULONG *ck, uint32_t ta_id, CK_ULONG ta_class);
 
