@@ -36,18 +36,8 @@ void ckteec_assert_expected_rv(const char *function, CK_RV rv,
 #define CK_VENDOR_INVALID_ID		0xffffffffUL
 #define PKCS11_CK_VENDOR_INVALID_ID	0xffffffffUL
 
-/*
- * Convert structure struct pkcs11_token_info retreived from TA into a
- * cryptoki API compliant CK_TOKEN_INFO structure.
- *
- * struct pkcs11_token_info is defined in the PKCS11 TA API.
- */
-CK_RV ta2ck_session_info(CK_SESSION_INFO *info,
-			 struct pkcs11_session_info *ta_info);
-
 int ta_attr2boolprop_shift(CK_ULONG attr);
 
-CK_RV ta2ck_rv(uint32_t ta_id);
 CK_RV teec2ck_rv(TEEC_Result res);
 
 /*
