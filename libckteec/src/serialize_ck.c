@@ -950,7 +950,7 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 
 	obj->object = PKCS11_CKO_MECHANISM;
 
-	memcpy(&mecha, mechanism, sizeof(mecha));
+	mecha = *mechanism;
 	obj->type = mecha.mechanism;
 	if (obj->type == PKCS11_UNDEFINED_ID)
 		return CKR_MECHANISM_INVALID;
