@@ -36,13 +36,6 @@ void ckteec_assert_expected_rv(const char *function, CK_RV rv,
 #define CK_VENDOR_INVALID_ID		0xffffffffUL
 #define PKCS11_CK_VENDOR_INVALID_ID	0xffffffffUL
 
-/* Helper for ta2ck_xxx() and ck2ta_xxx() helper declaration */
-#define DECLARE_CK2TA_FUNCTIONS(_label, _ck_typeof)		\
-	uint32_t ck2ta_ ## _label(_ck_typeof ck);	\
-	CK_RV ta2ck_ ## _label(_ck_typeof *ck, uint32_t ta_id)
-
-DECLARE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
-
 /*
  * Convert structure struct pkcs11_token_info retreived from TA into a
  * cryptoki API compliant CK_TOKEN_INFO structure.
@@ -51,17 +44,6 @@ DECLARE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
  */
 CK_RV ta2ck_session_info(CK_SESSION_INFO *info,
 			 struct pkcs11_session_info *ta_info);
-
-/* Backward compat on deprecated functions */
-static inline CK_RV ta2ck_attribute_id(CK_ATTRIBUTE_TYPE *ck, uint32_t ta_id)
-{
-	return ta2ck_attribute_type(ck, ta_id);
-}
-
-static inline uint32_t ck2ta_attribute_id(CK_ATTRIBUTE_TYPE ck)
-{
-	return ck2ta_attribute_type(ck);
-}
 
 int ta_attr2boolprop_shift(CK_ULONG attr);
 

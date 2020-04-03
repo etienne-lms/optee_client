@@ -125,7 +125,7 @@ static CK_RV serialize_indirect_attribute(struct serializer *obj,
 	 * Append the created serialized object into target object:
 	 * [attrib-id][byte-size][attributes-data]
 	 */
-	rv = serialize_32b(obj, ck2ta_attribute_type(attribute->type));
+	rv = serialize_32b(obj, attribute->type);
 	if (rv)
 		return rv;
 
@@ -195,7 +195,7 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 	unsigned int m;
 
 	/* Expect only those from the identification table */
-	pkcs11_id = ck2ta_attribute_type(attr->type);
+	pkcs11_id = attr->type;
 	if (pkcs11_id == PKCS11_UNDEFINED_ID)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
 
@@ -485,11 +485,9 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 {
 	CK_ULONG ck_ulong = 0;
 	uint32_t pkcs11_data32 = 0;
-	CK_RV rv = CKR_GENERAL_ERROR;
+	CK_RV rv = CKR_OK;
 
-	rv = ta2ck_attribute_type(&(out->type), in->id);
-	if (rv)
-		return rv;
+	out->type = in->id;
 
 	if (out->ulValueLen < in->size) {
 		out->ulValueLen = in->size;
