@@ -208,18 +208,6 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 	}
 
 	switch (attr->type) {
-	case CKA_CLASS:
-		pkcs11_data32 = ck2ta_object_class(ck_ulong);
-		pkcs11_pdata = &pkcs11_data32;
-		pkcs11_size = sizeof(uint32_t);
-		break;
-
-	case CKA_KEY_TYPE:
-		pkcs11_data32 = ck2ta_key_type(ck_ulong);
-		pkcs11_pdata = &pkcs11_data32;
-		pkcs11_size = sizeof(uint32_t);
-		break;
-
 	case CKA_WRAP_TEMPLATE:
 	case CKA_UNWRAP_TEMPLATE:
 		return serialize_indirect_attribute(obj, attr);
@@ -245,7 +233,6 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 			((uint32_t *)pkcs11_pdata)[m] = pkcs11_data32;
 		}
 		break;
-
 	/* Attributes which data value do not need conversion (aside ulong) */
 	default:
 		if (ck_attr_is_ulong(attr->type)) {
@@ -283,18 +270,14 @@ bail:
 #ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 static CK_RV get_class(struct serializer *obj, struct ck_ref *ref)
 {
-	CK_ULONG ck_value;
-	uint32_t pkcs11_value;
+	CK_ULONG ck_value = 0;
+	uint32_t pkcs11_value = 0;
 
 	if (ref->len != sizeof(ck_value))
 		return CKR_TEMPLATE_INCONSISTENT;
 
 	memcpy(&ck_value, ref->ptr, sizeof(ck_value));
-
-	pkcs11_value = ck2ta_object_class(ck_value);
-
-	if (pkcs11_value == PKCS11_UNDEFINED_ID)
-		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
+	pkcs11_value = ck_value;
 
 	if (obj->object == PKCS11_UNDEFINED_ID)
 		obj->object = pkcs11_value;
@@ -310,19 +293,16 @@ static CK_RV get_class(struct serializer *obj, struct ck_ref *ref)
 static CK_RV get_type(struct serializer *obj, struct ck_ref *ref,
 		      CK_ULONG class)
 {
-	CK_ULONG ck_value;
-	uint32_t pkcs11_value;
+	CK_ULONG ck_value = 0;
+	uint32_t pkcs11_value = 0;
 
 	if (ref->len != sizeof(ck_value))
 		return CKR_TEMPLATE_INCONSISTENT;
 
 	memcpy(&ck_value, ref->ptr, sizeof(ck_value));
+	pkcs11_value = ck_value;
 
-	pkcs11_value = ck2ta_type_in_class(ck_value, class);
-
-	if (pkcs11_value == PKCS11_UNDEFINED_ID)
-		return CKR_TEMPLATE_INCONSISTENT; // TODO: errno
-
+	/* Assigned object type if not assigned yet */
 	if (obj->type == PKCS11_UNDEFINED_ID)
 		obj->type = pkcs11_value;
 
@@ -392,22 +372,21 @@ static CK_RV serialize_generic_attributes(struct serializer *obj,
 					  CK_ATTRIBUTE_PTR attributes,
 					  CK_ULONG count)
 {
-	struct ck_ref *ref;
-	size_t n;
+	struct ck_ref *ref = NULL;
+	size_t n = 0;
 	uint32_t sanity[PKCS11_MAX_BOOLPROP_ARRAY] = { 0 };
 	CK_RV rv = CKR_OK;
-	CK_ULONG class;
+	CK_ULONG class = 0;
 
 	for (ref = (struct ck_ref *)attributes, n = 0; n < count; n++, ref++) {
-		if (ck_attr_is_class(ref->id))
+		if (ck_attr_is_class(ref->id)) {
 			rv = get_class(obj, ref);
-		if (rv)
-			return rv;
+			if (rv)
+				return rv;
+		}
 	}
 
-	rv = ta2ck_object_class(&class, obj->object);
-	if (rv)
-		return rv;
+	class = obj->object;
 
 	for (ref = (struct ck_ref *)attributes, n = 0; n < count; n++, ref++) {
 		if (ck_attr_is_type(ref->id)) {
@@ -465,21 +444,18 @@ CK_RV serialize_ck_attributes(struct serializer *obj,
 #endif
 
 	for (; n; n--, cur_attr++) {
-		CK_ATTRIBUTE attr;
-
-		memcpy(&attr, cur_attr, sizeof(attr));
-
 #ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
-		if (ck_attr_is_generic(attr.type))
+		if (ck_attr_is_generic(cur_attr->type))
 			continue;
 #endif
-
-		rv = serialize_ck_attribute(obj, &attr);
+		rv = serialize_ck_attribute(obj, cur_attr);
 		if (rv)
-			goto out;
+			break;
 	}
 
+#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 out:
+#endif
 	if (rv)
 		release_serial_object(obj);
 	else
@@ -534,33 +510,21 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 
 	switch (out->type) {
 	case CKA_CLASS:
-		rv = ta2ck_object_class(&ck_ulong, pkcs11_data32);
-		if (rv)
-			return rv;
-		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
-		break;
-
 	case CKA_KEY_TYPE:
-		rv = ta2ck_key_type(&ck_ulong, pkcs11_data32);
-		if (rv)
-			return rv;
+		ck_ulong = pkcs11_data32;
 		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
 		break;
-
 	case CKA_WRAP_TEMPLATE:
 	case CKA_UNWRAP_TEMPLATE:
 		rv = deserialize_indirect_attribute(in, out->pValue);
 		break;
-
 	case CKA_ALLOWED_MECHANISMS:
 		rv = deserialize_mecha_list(out->pValue, in->data,
 					    out->ulValueLen / sizeof(CK_ULONG));
 		break;
-
 	/* Attributes which data value do not need conversion (aside ulong) */
 	default:
 		memcpy(out->pValue, in->data, out->ulValueLen);
-		rv = CKR_OK;
 		break;
 	}
 
@@ -571,10 +535,10 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
 				CK_ULONG count)
 {
 	CK_ATTRIBUTE_PTR cur_attr = attributes;
-	CK_ULONG n;
+	CK_ULONG n = 0;
 	CK_RV rv = CKR_OK;
 	uint8_t *curr_head = in;
-	size_t len;
+	size_t len = 0;
 
 	curr_head += sizeof(struct pkcs11_object_head);
 
@@ -596,10 +560,9 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
 
 		rv = deserialize_ck_attribute(cli_ref, cur_attr);
 		if (rv)
-			goto out;
+			return rv;
 	}
 
-out:
 	return rv;
 }
 
@@ -815,7 +778,7 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_ec_kdf_type(params->kdf));
+	rv = serialize_ck_ulong(obj, params->kdf);
 	if (rv)
 		return rv;
 
@@ -855,7 +818,7 @@ static CK_RV serialize_mecha_ecdh_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_ec_kdf_type(params->kdf));
+	rv = serialize_ck_ulong(obj, params->kdf);
 	if (rv)
 		return rv;
 
@@ -886,12 +849,11 @@ static CK_RV serialize_mecha_rsa_oaep_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_rsa_pkcs_mgf_type(params->mgf));
+	rv = serialize_ck_ulong(obj, params->mgf);
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj,
-			   ck2ta_rsa_pkcs_oaep_source_type(params->source));
+	rv = serialize_ck_ulong(obj, params->source);
 	if (rv)
 		return rv;
 
@@ -922,7 +884,7 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_rsa_pkcs_mgf_type(params->mgf));
+	rv = serialize_ck_ulong(obj, params->mgf);
 	if (rv)
 		return rv;
 
@@ -953,12 +915,11 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, ck2ta_rsa_pkcs_mgf_type(oaep_p->mgf));
+	rv = serialize_ck_ulong(obj, oaep_p->mgf);
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj,
-			   ck2ta_rsa_pkcs_oaep_source_type(oaep_p->source));
+	rv = serialize_ck_ulong(obj, oaep_p->source);
 	if (rv)
 		return rv;
 

@@ -208,69 +208,6 @@ static const struct ck2ta attribute_type[] = {
 
 DEFINE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE)
 
-static const struct ck2ta object_class[] = {
-	CK2TA_ID(CKO_SECRET_KEY),
-	CK2TA_ID(CKO_PUBLIC_KEY),
-	CK2TA_ID(CKO_PRIVATE_KEY),
-	CK2TA_ID(CKO_OTP_KEY),
-	CK2TA_ID(CKO_CERTIFICATE),
-	CK2TA_ID(CKO_DATA),
-	CK2TA_ID(CKO_DOMAIN_PARAMETERS),
-	CK2TA_ID(CKO_HW_FEATURE),
-	CK2TA_ID(CKO_MECHANISM),
-	CK2TA_ID_BRACE(CK_VENDOR_INVALID_ID, PKCS11_UNDEFINED_ID),
-};
-
-DEFINE_CK2TA_FUNCTIONS(object_class, CK_OBJECT_CLASS)
-
-static const struct ck2ta key_type[] = {
-	CK2TA_ID(CKK_AES),
-	CK2TA_ID(CKK_GENERIC_SECRET),
-	CK2TA_ID(CKK_MD5_HMAC),
-	CK2TA_ID(CKK_SHA_1_HMAC),
-	CK2TA_ID(CKK_SHA224_HMAC),
-	CK2TA_ID(CKK_SHA256_HMAC),
-	CK2TA_ID(CKK_SHA384_HMAC),
-	CK2TA_ID(CKK_SHA512_HMAC),
-	CK2TA_ID(CKK_RSA),
-	CK2TA_ID(CKK_EC),
-	CK2TA_ID(CKK_DSA),
-	CK2TA_ID(CKK_DH),
-	CK2TA_ID_BRACE(CK_VENDOR_INVALID_ID, PKCS11_UNDEFINED_ID),
-};
-
-DEFINE_CK2TA_FUNCTIONS(key_type, CK_KEY_TYPE)
-
-static const struct ck2ta ec_kdf_type[] = {
-	CK2TA_ID(CKD_NULL),
-	CK2TA_ID(CKD_SHA1_KDF),
-	CK2TA_ID(CKD_SHA1_KDF_ASN1),
-	CK2TA_ID(CKD_SHA1_KDF_CONCATENATE),
-	CK2TA_ID(CKD_SHA224_KDF),
-	CK2TA_ID(CKD_SHA256_KDF),
-	CK2TA_ID(CKD_SHA384_KDF),
-	CK2TA_ID(CKD_SHA512_KDF),
-	CK2TA_ID(CKD_CPDIVERSIFY_KDF),
-};
-
-DEFINE_CK2TA_FUNCTIONS(ec_kdf_type, CK_EC_KDF_TYPE)
-
-static const struct ck2ta rsa_pkcs_mgf_type[] = {
-	CK2TA_ID(CKG_MGF1_SHA1),
-	CK2TA_ID(CKG_MGF1_SHA224),
-	CK2TA_ID(CKG_MGF1_SHA256),
-	CK2TA_ID(CKG_MGF1_SHA384),
-	CK2TA_ID(CKG_MGF1_SHA512),
-};
-
-DEFINE_CK2TA_FUNCTIONS(rsa_pkcs_mgf_type, CK_RSA_PKCS_MGF_TYPE)
-
-static const struct ck2ta rsa_pkcs_oaep_source_type[] = {
-	CK2TA_ID(CKZ_DATA_SPECIFIED),
-};
-
-DEFINE_CK2TA_FUNCTIONS(rsa_pkcs_oaep_source_type, CK_RSA_PKCS_OAEP_SOURCE_TYPE)
-
 CK_RV teec2ck_rv(TEEC_Result res)
 {
 	switch (res) {
@@ -338,43 +275,6 @@ int ta_class_has_type(uint32_t class)
 		return 1;
 	default:
 		return 0;
-	}
-}
-
-uint32_t ck2ta_type_in_class(CK_ULONG ck, CK_ULONG class)
-{
-	switch (class) {
-	case CKO_DATA:
-		return 0;
-	case CKO_SECRET_KEY:
-	case CKO_PUBLIC_KEY:
-	case CKO_PRIVATE_KEY:
-	case CKO_OTP_KEY:
-		return ck2ta_key_type(ck);
-	case CKO_MECHANISM:
-		return ck;
-	case CKO_CERTIFICATE:
-	default:
-		return PKCS11_UNDEFINED_ID;
-	}
-}
-
-CK_RV ta2ck_type_in_class(CK_ULONG *ck, uint32_t ta_id, CK_ULONG class)
-{
-	switch (class) {
-	case PKCS11_CKO_DATA:
-		return CKR_NO_EVENT;
-	case PKCS11_CKO_SECRET_KEY:
-	case PKCS11_CKO_PUBLIC_KEY:
-	case PKCS11_CKO_PRIVATE_KEY:
-	case PKCS11_CKO_OTP_KEY:
-		return ta2ck_key_type(ck, ta_id);
-	case PKCS11_CKO_MECHANISM:
-		*ck = ta_id;
-		return CKR_OK;
-	case PKCS11_CKO_CERTIFICATE:
-	default:
-		return CKR_GENERAL_ERROR;
 	}
 }
 

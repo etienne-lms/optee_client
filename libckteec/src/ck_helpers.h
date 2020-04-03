@@ -42,12 +42,6 @@ void ckteec_assert_expected_rv(const char *function, CK_RV rv,
 	CK_RV ta2ck_ ## _label(_ck_typeof *ck, uint32_t ta_id)
 
 DECLARE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
-DECLARE_CK2TA_FUNCTIONS(object_class, CK_OBJECT_CLASS);
-DECLARE_CK2TA_FUNCTIONS(key_type, CK_KEY_TYPE);
-DECLARE_CK2TA_FUNCTIONS(ec_kdf_type, CK_EC_KDF_TYPE);
-DECLARE_CK2TA_FUNCTIONS(rsa_pkcs_mgf_type, CK_RSA_PKCS_MGF_TYPE);
-DECLARE_CK2TA_FUNCTIONS(rsa_pkcs_oaep_source_type,
-			CK_RSA_PKCS_OAEP_SOURCE_TYPE);
 
 /*
  * Convert structure struct pkcs11_token_info retreived from TA into a
@@ -68,19 +62,6 @@ static inline uint32_t ck2ta_attribute_id(CK_ATTRIBUTE_TYPE ck)
 {
 	return ck2ta_attribute_type(ck);
 }
-
-static inline CK_RV ta2ck_class(CK_OBJECT_CLASS *ck, uint32_t ta_id)
-{
-	return ta2ck_object_class(ck, ta_id);
-}
-
-static inline uint32_t ck2ta_class(CK_OBJECT_CLASS ck)
-{
-	return ck2ta_object_class(ck);
-}
-
-uint32_t ck2ta_type_in_class(CK_ULONG ck, CK_ULONG class);
-CK_RV ta2ck_type_in_class(CK_ULONG *ck, uint32_t ta_id, CK_ULONG ta_class);
 
 int ta_attr2boolprop_shift(CK_ULONG attr);
 
