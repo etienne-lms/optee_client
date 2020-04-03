@@ -703,7 +703,7 @@ CK_RV ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 	CK_RV rv = CKR_GENERAL_ERROR;
 	TEEC_SharedMemory *ctrl = NULL;
 	uint32_t pkcs11_session = session;
-	uint32_t pkcs11_user = ck2ta_user_type(user_type);
+	uint32_t pkcs11_user = user_type;
 	uint32_t pkcs11_pin_len = pin_len;
 	size_t ctrl_size = 0;
 	char *buf = NULL;

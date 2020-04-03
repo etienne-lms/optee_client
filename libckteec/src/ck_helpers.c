@@ -271,14 +271,6 @@ static const struct ck2ta rsa_pkcs_oaep_source_type[] = {
 
 DEFINE_CK2TA_FUNCTIONS(rsa_pkcs_oaep_source_type, CK_RSA_PKCS_OAEP_SOURCE_TYPE)
 
-static const struct ck2ta user_type[] = {
-	CK2TA_ID(CKU_SO),
-	CK2TA_ID(CKU_USER),
-	CK2TA_ID(CKU_CONTEXT_SPECIFIC),
-};
-
-DEFINE_CK2TA_FUNCTIONS(user_type, CK_USER_TYPE)
-
 CK_RV teec2ck_rv(TEEC_Result res)
 {
 	switch (res) {

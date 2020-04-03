@@ -41,7 +41,6 @@ void ckteec_assert_expected_rv(const char *function, CK_RV rv,
 	uint32_t ck2ta_ ## _label(_ck_typeof ck);	\
 	CK_RV ta2ck_ ## _label(_ck_typeof *ck, uint32_t ta_id)
 
-DECLARE_CK2TA_FUNCTIONS(user_type, CK_USER_TYPE);
 DECLARE_CK2TA_FUNCTIONS(attribute_type, CK_ATTRIBUTE_TYPE);
 DECLARE_CK2TA_FUNCTIONS(object_class, CK_OBJECT_CLASS);
 DECLARE_CK2TA_FUNCTIONS(key_type, CK_KEY_TYPE);
