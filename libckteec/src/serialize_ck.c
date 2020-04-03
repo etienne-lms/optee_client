@@ -780,7 +780,7 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->ulSharedDataLen);
+	rv = serialize_ck_ulong(obj, params->ulSharedDataLen);
 	if (rv)
 		return rv;
 
@@ -789,7 +789,7 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->ulPublicDataLen);
+	rv = serialize_ck_ulong(obj, params->ulPublicDataLen);
 	if (rv)
 		return rv;
 
@@ -812,7 +812,7 @@ static CK_RV serialize_mecha_ecdh_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->ulAESKeyBits);
+	rv = serialize_ck_ulong(obj, params->ulAESKeyBits);
 	if (rv)
 		return rv;
 
@@ -820,7 +820,7 @@ static CK_RV serialize_mecha_ecdh_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->ulSharedDataLen);
+	rv = serialize_ck_ulong(obj, params->ulSharedDataLen);
 	if (rv)
 		return rv;
 
@@ -843,7 +843,7 @@ static CK_RV serialize_mecha_rsa_oaep_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->hashAlg);
+	rv = serialize_ck_ulong(obj, params->hashAlg);
 	if (rv)
 		return rv;
 
@@ -855,7 +855,7 @@ static CK_RV serialize_mecha_rsa_oaep_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->ulSourceDataLen);
+	rv = serialize_ck_ulong(obj, params->ulSourceDataLen);
 	if (rv)
 		return rv;
 
@@ -878,7 +878,7 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->hashAlg);
+	rv = serialize_ck_ulong(obj, params->hashAlg);
 	if (rv)
 		return rv;
 
@@ -886,7 +886,7 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	return serialize_32b(obj, params->sLen);
+	return serialize_ck_ulong(obj, params->sLen);
 }
 
 static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
@@ -905,11 +905,11 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, params->ulAESKeyBits);
+	rv = serialize_ck_ulong(obj, params->ulAESKeyBits);
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, oaep_p->hashAlg);
+	rv = serialize_ck_ulong(obj, oaep_p->hashAlg);
 	if (rv)
 		return rv;
 
@@ -921,7 +921,7 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 	if (rv)
 		return rv;
 
-	rv = serialize_32b(obj, oaep_p->ulSourceDataLen);
+	rv = serialize_ck_ulong(obj, oaep_p->ulSourceDataLen);
 	if (rv)
 		return rv;
 
