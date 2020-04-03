@@ -764,8 +764,8 @@ static CK_RV serialize_mecha_ecdh1_derive_param(struct serializer *obj,
 {
 	CK_ECDH1_DERIVE_PARAMS *params = mecha->pParameter;
 	CK_RV rv = CKR_GENERAL_ERROR;
-	size_t params_size = 3 * sizeof(uint32_t) + params->ulSharedDataLen +
-				params->ulPublicDataLen;
+	uint32_t params_size = 3 * sizeof(uint32_t) + params->ulSharedDataLen +
+			       params->ulPublicDataLen;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -801,7 +801,7 @@ static CK_RV serialize_mecha_ecdh_aes_key_wrap_param(struct serializer *obj,
 {
 	CK_ECDH_AES_KEY_WRAP_PARAMS *params = mecha->pParameter;
 	CK_RV rv = CKR_GENERAL_ERROR;
-	size_t params_size = 3 * sizeof(uint32_t) + params->ulSharedDataLen;
+	uint32_t params_size = 3 * sizeof(uint32_t) + params->ulSharedDataLen;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -867,7 +867,7 @@ static CK_RV serialize_mecha_rsa_pss_param(struct serializer *obj,
 {
 	CK_RSA_PKCS_PSS_PARAMS *params = mecha->pParameter;
 	CK_RV rv = CKR_GENERAL_ERROR;
-	size_t params_size = 3 * sizeof(uint32_t);
+	uint32_t params_size = 3 * sizeof(uint32_t);
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
@@ -894,7 +894,7 @@ static CK_RV serialize_mecha_rsa_aes_key_wrap_param(struct serializer *obj,
 	CK_RSA_AES_KEY_WRAP_PARAMS *params = mecha->pParameter;
 	CK_RSA_PKCS_OAEP_PARAMS *oaep_p = params->pOAEPParams;
 	CK_RV rv = CKR_GENERAL_ERROR;
-	size_t params_size = 5 * sizeof(uint32_t) + params->pOAEPParams->ulSourceDataLen;
+	uint32_t params_size = 5 * sizeof(uint32_t) + params->pOAEPParams->ulSourceDataLen;
 
 	rv = serialize_32b(obj, obj->type);
 	if (rv)
