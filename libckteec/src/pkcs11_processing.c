@@ -60,7 +60,7 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 	char *buf = NULL;
 	size_t out_size = 0;
 
-	if (!handle || !attribs)
+	if (!handle || !attribs || !count)
 		return CKR_ARGUMENTS_BAD;
 
 	rv = serialize_ck_attributes(&obj, attribs, count);
