@@ -386,7 +386,7 @@ CK_RV ck_generate_key(CK_SESSION_HANDLE session,
 	char *buf = NULL;
 	size_t out_size = 0;
 
-	if (!handle || (count && !attribs))
+	if (!handle || !mechanism || (count && !attribs))
 		return CKR_ARGUMENTS_BAD;
 
 	rv = serialize_ck_mecha_params(&smecha, mechanism);
