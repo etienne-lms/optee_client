@@ -248,6 +248,9 @@ CK_RV ck_encdecrypt_update(CK_SESSION_HANDLE session,
 	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
 
+	if (rv == CKR_BUFFER_TOO_SMALL && out_size && !out)
+		rv = CKR_OK;
+
 bail:
 	ckteec_free_shm(out_shm);
 	ckteec_free_shm(in_shm);
@@ -311,6 +314,9 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
 
+	if (rv == CKR_BUFFER_TOO_SMALL && out_size && !out)
+		rv = CKR_OK;
+
 bail:
 	ckteec_free_shm(in_shm);
 	ckteec_free_shm(out_shm);
@@ -360,6 +366,9 @@ CK_RV ck_encdecrypt_final(CK_SESSION_HANDLE session,
 
 	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
+
+	if (rv == CKR_BUFFER_TOO_SMALL && out_size && !out)
+		rv = CKR_OK;
 
 bail:
 	ckteec_free_shm(out_shm);
@@ -691,6 +700,9 @@ CK_RV ck_signverify_oneshot(CK_SESSION_HANDLE session,
 	if (sign && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*sign_len = out_size;
 
+	if (rv == CKR_BUFFER_TOO_SMALL && out_size && !sign_ref)
+		rv = CKR_OK;
+
 bail:
 	ckteec_free_shm(io1);
 	ckteec_free_shm(io2);
@@ -749,6 +761,9 @@ CK_RV ck_signverify_final(CK_SESSION_HANDLE session,
 
 	if (sign && sign_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*sign_len = out_size;
+
+	if (rv == CKR_BUFFER_TOO_SMALL && out_size && !sign_ref)
+		rv = CKR_OK;
 
 bail:
 	ckteec_free_shm(io);
