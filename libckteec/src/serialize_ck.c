@@ -507,6 +507,7 @@ static CK_RV deserialize_ck_attribute(struct pkcs11_attribute_head *in,
 	switch (out->type) {
 	case CKA_CLASS:
 	case CKA_KEY_TYPE:
+	case CKA_KEY_GEN_MECHANISM:
 		ck_ulong = pkcs11_data32;
 		memcpy(out->pValue, &ck_ulong, sizeof(CK_ULONG));
 		break;

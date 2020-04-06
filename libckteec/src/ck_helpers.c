@@ -64,6 +64,7 @@ size_t ck_attr_is_type(uint32_t id)
 	case CKA_KEY_TYPE:
 	case CKA_HW_FEATURE_TYPE:
 	case CKA_MECHANISM_TYPE:
+	case CKA_KEY_GEN_MECHANISM:
 		return sizeof(CK_ULONG);
 	default:
 		return 0;
