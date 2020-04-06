@@ -97,10 +97,16 @@ static bool lib_initiated(void)
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
+	CK_C_INITIALIZE_ARGS_PTR args = NULL;
 	CK_RV rv = 0;
 
-	/* Argument currently unused as per the PKCS#11 specification */
-	(void)pInitArgs;
+	if (pInitArgs) {
+		args = (CK_C_INITIALIZE_ARGS_PTR)pInitArgs;
+
+		/* Reserved must be set to NULL in this version of PKCS#11 */
+		if (args->reserved)
+			return CKR_ARGUMENTS_BAD;
+	}
 
 	rv = ckteec_invoke_init();
 
@@ -117,8 +123,9 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 {
 	CK_RV rv = 0;
 
-	/* Argument currently unused as per the PKCS#11 specification */
-	(void)pReserved;
+	/* Reserved must be set to NULL in this version of PKCS#11 */
+	if (pReserved)
+		return CKR_ARGUMENTS_BAD;
 
 	rv = ckteec_invoke_terminate();
 
