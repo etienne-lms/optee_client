@@ -43,7 +43,7 @@ static const CK_FUNCTION_LIST libckteec_function_list = {
 	.C_CreateObject = C_CreateObject,
 	.C_CopyObject = NULL,
 	.C_DestroyObject = C_DestroyObject,
-	.C_GetObjectSize = NULL,
+	.C_GetObjectSize = C_GetObjectSize,
 	.C_GetAttributeValue = C_GetAttributeValue,
 	.C_SetAttributeValue = NULL,
 	.C_FindObjectsInit = C_FindObjectsInit,
@@ -518,14 +518,18 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession,
 		      CK_OBJECT_HANDLE hObject,
 		      CK_ULONG_PTR pulSize)
 {
-	(void)hSession;
-	(void)hObject;
-	(void)pulSize;
+	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!lib_initiated())
-		return CKR_CRYPTOKI_NOT_INITIALIZED;
+	if (lib_initiated())
+		rv = ck_get_object_size(hSession, hObject, pulSize);
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	ASSERT_CK_RV(rv, CKR_ARGUMENTS_BAD, CKR_CRYPTOKI_NOT_INITIALIZED,
+		     CKR_DEVICE_ERROR, CKR_DEVICE_MEMORY, CKR_DEVICE_REMOVED,
+		     CKR_FUNCTION_FAILED, CKR_GENERAL_ERROR, CKR_HOST_MEMORY,
+		     CKR_INFORMATION_SENSITIVE, CKR_OBJECT_HANDLE_INVALID,
+		     CKR_OK, CKR_SESSION_CLOSED, CKR_SESSION_HANDLE_INVALID);
+
+	return rv;
 }
 
 CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession,
