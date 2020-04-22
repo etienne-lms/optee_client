@@ -9,11 +9,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "ck_helpers.h"
 #include "invoke_ta.h"
 #include "local_utils.h"
 #include "pkcs11_processing.h"
 #include "pkcs11_token.h"
-#include "ck_helpers.h"
 
 static const CK_FUNCTION_LIST libckteec_function_list = {
 	.version = {
