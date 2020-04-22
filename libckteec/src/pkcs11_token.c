@@ -281,7 +281,12 @@ CK_RV ck_token_mechanism_ids(CK_SLOT_ID slot,
 	if (!count || (*count && !mechanisms))
 		return CKR_ARGUMENTS_BAD;
 
-	out_size = *count * sizeof(*mecha_ids);
+	/*
+	 * As per spec, if @mechanism is NULL, "The contents of *pulCount on
+	 * entry to C_GetMechanismList has no meaning in this case (...)"
+	 */
+	if (mechanisms)
+		out_size = *count * sizeof(*mecha_ids);
 
 	ctrl = ckteec_alloc_shm(sizeof(slot_id), CKTEEC_SHM_INOUT);
 	if (!ctrl) {
