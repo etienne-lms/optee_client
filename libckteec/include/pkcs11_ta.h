@@ -19,8 +19,8 @@
 #define PKCS11_TA_VERSION_PATCH			0
 
 /* Attribute specific values */
-#define PKCS11_UNAVAILABLE_INFORMATION		UINT32_C(0xFFFFFFFF)
-#define PKCS11_UNDEFINED_ID			PKCS11_UNAVAILABLE_INFORMATION
+#define PKCS11_CK_UNAVAILABLE_INFORMATION	UINT32_C(0xFFFFFFFF)
+#define PKCS11_UNDEFINED_ID			UINT32_C(0xFFFFFFFF)
 #define PKCS11_FALSE				false
 #define PKCS11_TRUE				true
 
@@ -252,6 +252,35 @@ enum pkcs11_ta_cmd {
 	PKCS11_CMD_LOGOUT = 14,
 
 	/*
+	 * PKCS11_CMD_CREATE_OBJECT - Create a raw object in the session or
+	 *			      token
+	 *
+	 *
+	 * [in]  memref[0] = [
+	 *              32bit session handle,
+	 *              (struct pkcs11_object_head)attribs + attributes data
+	 *	 ]
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [out] memref[2] = 32bit object handle
+	 *
+	 * This command relates to the PKCS#11 API function C_CreateObject().
+	 */
+	PKCS11_CMD_CREATE_OBJECT = 15,
+
+	/*
+	 * PKCS11_CMD_DESTROY_OBJECT - Destroy an object
+	 *
+	 * [in]  memref[0] = [
+	 *              32bit session handle,
+	 *              32bit object handle
+	 *	 ]
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 *
+	 * This command relates to the PKCS#11 API function C_DestroyObject().
+	 */
+	PKCS11_CMD_DESTROY_OBJECT = 16,
+
+	/*
 	 * PKCS11_CMD_GET_SESSION_STATE - Retrieve the session state for later restore
 	 *
 	 * [in]  memref[0] = 32bit session handle
@@ -274,20 +303,6 @@ enum pkcs11_ta_cmd {
 	PKCS11_CMD_SET_SESSION_STATE = 117,
 
 	/*
-	 * PKCS11_CMD_IMPORT_OBJECT - Import a raw object in the session or token
-	 *
-	 * [in]  memref[0] = [
-	 *              32bit session handle,
-	 *              (struct pkcs11_object_head)attribs + attributes data
-	 *	 ]
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [out] memref[2] = 32bit object handle
-	 *
-	 * This command relates to the PKCS#11 API function C_CreateObject().
-	 */
-	PKCS11_CMD_IMPORT_OBJECT = 118,
-
-	/*
 	 * PKCS11_CMD_COPY_OBJECT - Duplicate an object possibly with new attributes
 	 *
 	 * [in]  memref[0] = [
@@ -301,19 +316,6 @@ enum pkcs11_ta_cmd {
 	 * This command relates to the PKCS#11 API function C_CopyObject().
 	 */
 	PKCS11_CMD_COPY_OBJECT = 119,
-
-	/*
-	 * PKCS11_CMD_DESTROY_OBJECT - Destroy an object
-	 *
-	 * [in]  memref[0] = [
-	 *              32bit session handle,
-	 *              32bit object handle
-	 *	 ]
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 *
-	 * This command relates to the PKCS#11 API function C_DestroyObject().
-	 */
-	PKCS11_CMD_DESTROY_OBJECT = 120,
 
 	/*
 	 * PKCS11_CMD_FIND_OBJECTS_INIT - Initialize an object search

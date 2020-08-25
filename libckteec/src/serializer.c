@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: BSD-2-Clause
 /*
- * Copyright (c) 2017-2018, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2017-2020, Linaro Limited
  */
 
 #include <pkcs11_ta.h>
@@ -15,22 +14,18 @@
 
 CK_RV init_serial_object(struct serializer *obj)
 {
-	struct pkcs11_object_head head;
+	struct pkcs11_object_head head = { };
 
 	memset(obj, 0, sizeof(*obj));
 	obj->object = PKCS11_UNDEFINED_ID;
 	obj->type = PKCS11_UNDEFINED_ID;
 
-	/* Init head to all ones, will be set at finalize_serial_object */
-	memset(&head, 0xFF, sizeof(head));
 	return serialize_buffer(obj, &head, sizeof(head));
 }
 
 void finalize_serial_object(struct serializer *obj)
 {
-	struct pkcs11_object_head head;
-
-	memset(&head, 0xFF, sizeof(head));
+	struct pkcs11_object_head head = { };
 
 #ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 fsdf fsd fsdf sdf
@@ -56,16 +51,13 @@ void release_serial_object(struct serializer *obj)
  * serialize - append data in a serialized buffer
  *
  * Serialize data in provided buffer.
- * Ensure 64byte alignement of appended data in the buffer.
+ * Ensure 64byte alignment of appended data in the buffer.
  */
 static CK_RV serialize(char **bstart, size_t *blen, void *data, size_t len)
 {
-	char *buf;
-	size_t nlen;
+	size_t nlen = *blen + len;
+	char *buf = realloc(*bstart, nlen);
 
-	nlen = *blen + len;
-
-	buf = realloc(*bstart, nlen);
 	if (!buf)
 		return CKR_HOST_MEMORY;
 
@@ -84,9 +76,7 @@ CK_RV serialize_buffer(struct serializer *obj, void *data, size_t size)
 
 CK_RV serialize_32b(struct serializer *obj, uint32_t data)
 {
-	uint32_t data32 = data;
-
-	return serialize_buffer(obj, &data32, sizeof(uint32_t));
+	return serialize_buffer(obj, &data, sizeof(data));
 }
 
 CK_RV serialize_ck_ulong(struct serializer *obj, CK_ULONG data)

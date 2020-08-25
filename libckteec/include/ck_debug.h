@@ -8,9 +8,6 @@
 
 #include <pkcs11.h>
 
-/* Return a pointer to a string buffer of "CKA_xxx\0" attribute ID */
-const char *cka2str(CK_ATTRIBUTE_TYPE id);
-
 /* Return a pointer to a string buffer of "CKR_xxx\0" return value ID */
 const char *ckr2str(CK_RV id);
 
@@ -29,16 +26,27 @@ const char *mecha_ckf2str(CK_ULONG flag);
 /* session_ckf2str - Return string buffer "CKF_xxx\0" for a session flag */
 const char *session_ckf2str(CK_ULONG flag);
 
-/* mecha_ckf2str - Return string buffer "CKS_xxx\0" for a session state */
+/* session_cks2str - Return string buffer "CKS_xxx\0" for a session state */
 const char *session_cks2str(CK_ULONG flag);
 
+/* Return a pointer to a string buffer of "CKA_xxx\0" attribute ID */
+const char *cka2str(CK_ATTRIBUTE_TYPE id);
+
+/* Return a pointer to a string buffer of "CKO_xxx\0" object class ID */
+const char *cko2str(CK_OBJECT_CLASS id);
+
+/* Return a pointer to a string buffer of "CKK_xxx\0" key type ID */
+const char *ckk2str(CK_KEY_TYPE id);
+
+/*
+ * Deprecated helper functions
+ */
 char *ck_slot_flag2str(CK_ULONG flags);
 char *ck_token_flag2str(CK_ULONG flags);
 char *ck_mecha_flag2str(CK_ULONG flags);
 
 const char *ckclass2str(CK_ULONG id);
 const char *cktype2str(CK_ULONG id, CK_ULONG class);
-
 const char *ta_cmd2str(unsigned int id);
 
 #endif /*LIBCKTEEC_CK_DEBUG_H*/

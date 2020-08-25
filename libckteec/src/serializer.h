@@ -1,9 +1,7 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
 /*
- * Copyright (c) 2017-2018, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2017-2020, Linaro Limited
  */
-
 #ifndef LIBCKTEEC_SERIALIZER_H
 #define LIBCKTEEC_SERIALIZER_H
 

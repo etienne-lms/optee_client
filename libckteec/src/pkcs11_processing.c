@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: BSD-2-Clause
 /*
  * Copyright (c) 2017-2018, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
  */
 
 #include <pkcs11.h>
@@ -44,19 +43,16 @@ static TEEC_SharedMemory *register_or_alloc_input_buffer(void *in, size_t len)
 	return shm;
 }
 
-CK_RV ck_create_object(CK_SESSION_HANDLE session,
-			CK_ATTRIBUTE_PTR attribs,
-			CK_ULONG count,
-			CK_OBJECT_HANDLE_PTR handle)
+CK_RV ck_create_object(CK_SESSION_HANDLE session, CK_ATTRIBUTE_PTR attribs,
+		       CK_ULONG count, CK_OBJECT_HANDLE_PTR handle)
 {
 	CK_RV rv = CKR_GENERAL_ERROR;
-	struct serializer obj;
+	struct serializer obj = { };
 	size_t ctrl_size = 0;
 	TEEC_SharedMemory *ctrl = NULL;
 	TEEC_SharedMemory *out_shm = NULL;
 	uint32_t session_handle = session;
-	uint32_t key_handle;
-	size_t key_handle_size = sizeof(key_handle);
+	uint32_t key_handle = 0;
 	char *buf = NULL;
 	size_t out_size = 0;
 
@@ -65,14 +61,14 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 
 	rv = serialize_ck_attributes(&obj, attribs, count);
 	if (rv)
-		goto bail;
+		goto out;
 
 	/* Shm io0: (i/o) [session-handle][serialized-attributes] / [status] */
 	ctrl_size = sizeof(session_handle) + obj.size;
 	ctrl = ckteec_alloc_shm(ctrl_size, CKTEEC_SHM_INOUT);
 	if (!ctrl) {
 		rv = CKR_HOST_MEMORY;
-		goto bail;
+		goto out;
 	}
 
 	buf = ctrl->buffer;
@@ -83,25 +79,25 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 	memcpy(buf, obj.buffer, obj.size);
 
 	/* Shm io2: (out) [object handle] */
-	out_shm = ckteec_alloc_shm(key_handle_size, CKTEEC_SHM_OUT);
+	out_shm = ckteec_alloc_shm(sizeof(key_handle), CKTEEC_SHM_OUT);
 	if (!out_shm) {
 		rv = CKR_HOST_MEMORY;
-		goto bail;
+		goto out;
 	}
 
-	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_IMPORT_OBJECT,
+	rv = ckteec_invoke_ctrl_out(PKCS11_CMD_CREATE_OBJECT,
 				    ctrl, out_shm, &out_size);
 
 	if (rv != CKR_OK || out_size != out_shm->size) {
 		if (rv == CKR_OK)
 			rv = CKR_DEVICE_ERROR;
-		goto bail;
+		goto out;
 	}
 
-	memcpy(&key_handle, out_shm->buffer, key_handle_size);
+	memcpy(&key_handle, out_shm->buffer, sizeof(key_handle));
 	*handle = key_handle;
 
-bail:
+out:
 	release_serial_object(&obj);
 	ckteec_free_shm(out_shm);
 	ckteec_free_shm(ctrl);
@@ -109,8 +105,7 @@ bail:
 	return rv;
 }
 
-CK_RV ck_destroy_object(CK_SESSION_HANDLE session,
-			CK_OBJECT_HANDLE obj)
+CK_RV ck_destroy_object(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE obj)
 {
 	CK_RV rv = CKR_GENERAL_ERROR;
 	TEEC_SharedMemory *ctrl = NULL;

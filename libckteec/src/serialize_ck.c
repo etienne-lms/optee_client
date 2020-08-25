@@ -1,15 +1,14 @@
+// SPDX-License-Identifier: BSD-2-Clause
 /*
- * Copyright (c) 2017-2018, Linaro Limited
- *
- * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2017-2020, Linaro Limited
  */
 
+#include <ck_debug.h>
+#include <inttypes.h>
 #include <pkcs11.h>
+#include <pkcs11_ta.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
-#include <ck_debug.h>
-#include <pkcs11_ta.h>
 
 #include "ck_helpers.h"
 #include "local_utils.h"
@@ -17,8 +16,8 @@
 #include "serialize_ck.h"
 
 /*
- * Generic way of serializing CK keys, certif, mechanism parameters, ...
- * In cryptoki 2.40 parameters are almost all packaged as struture below:
+ * Generic way of serializing CK keys, certificates, mechanism parameters, ...
+ * In cryptoki 2.40 parameters are almost all packaged as structure below:
  */
 struct ck_ref {
 	CK_ULONG id;
@@ -106,7 +105,7 @@ static CK_RV serialize_indirect_attribute(struct serializer *obj,
 	struct serializer obj2 = { };
 
 	switch (attribute->type) {
-	/* These are serialized each seperately */
+	/* These are serialized each separately */
 	case CKA_WRAP_TEMPLATE:
 	case CKA_UNWRAP_TEMPLATE:
 		count = attribute->ulValueLen / sizeof(CK_ATTRIBUTE);
@@ -170,10 +169,13 @@ static CK_RV deserialize_indirect_attribute(struct pkcs11_attribute_head *obj,
 
 static int ck_attr_is_ulong(CK_ATTRIBUTE_TYPE attribute_id)
 {
-	if (ck_attr_is_class(attribute_id) || ck_attr_is_type(attribute_id))
-		return true;
-
 	switch (attribute_id) {
+	case CKA_CLASS:
+	case CKA_CERTIFICATE_TYPE:
+	case CKA_KEY_TYPE:
+	case CKA_HW_FEATURE_TYPE:
+	case CKA_MECHANISM_TYPE:
+	case CKA_KEY_GEN_MECHANISM:
 	case CKA_VALUE_LEN:
 	case CKA_MODULUS_BITS:
 		return true;
@@ -426,7 +428,7 @@ static int ck_attr_is_generic(CK_ULONG attribute_id)
 
 /* CK attribute reference arguments are list of attribute item */
 CK_RV serialize_ck_attributes(struct serializer *obj,
-				CK_ATTRIBUTE_PTR attributes, CK_ULONG count)
+			      CK_ATTRIBUTE_PTR attributes, CK_ULONG count)
 {
 	CK_ATTRIBUTE_PTR cur_attr = attributes;
 	CK_ULONG n = count;
