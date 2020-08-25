@@ -186,28 +186,17 @@ static int ck_attr_is_ulong(CK_ATTRIBUTE_TYPE attribute_id)
 
 static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 {
-	uint32_t pkcs11_id = PKCS11_UNDEFINED_ID;
+	CK_MECHANISM_TYPE *type = NULL;
 	uint32_t pkcs11_size = 0;
 	uint32_t pkcs11_data32 = 0;
 	void *pkcs11_pdata = NULL;
-	int pkcs11_pdata_alloced = 0;
-	CK_ULONG ck_ulong = 0;		/* keep compiler happy */
+	uint32_t *mech_buf = NULL;
 	CK_RV rv = CKR_GENERAL_ERROR;
 	unsigned int n = 0;
 	unsigned int m = 0;
 
-	/* Expect only those from the identification table */
-	pkcs11_id = attr->type;
-	if (pkcs11_id == PKCS11_UNDEFINED_ID)
+	if (attr->type == PKCS11_UNDEFINED_ID)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
-
-	if (ck_attr_is_ulong(attr->type)) {
-		/* PKCS#11 CK_ULONG are use */
-		if (attr->ulValueLen != sizeof(CK_ULONG))
-			return CKR_ATTRIBUTE_TYPE_INVALID;
-
-		memcpy(&ck_ulong, attr->pValue, sizeof(ck_ulong));
-	}
 
 	switch (attr->type) {
 	case CKA_WRAP_TEMPLATE:
@@ -216,28 +205,30 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 	case CKA_ALLOWED_MECHANISMS:
 		n = attr->ulValueLen / sizeof(CK_ULONG);
 		pkcs11_size = n * sizeof(uint32_t);
-		pkcs11_pdata = malloc(pkcs11_size);
-		if (!pkcs11_pdata)
+		mech_buf = malloc(pkcs11_size);
+		if (!mech_buf)
 			return CKR_HOST_MEMORY;
 
-		pkcs11_pdata_alloced = 1;
-
+		type = attr->pValue;
 		for (m = 0; m < n; m++) {
-			CK_MECHANISM_TYPE *type = attr->pValue;
-
-			pkcs11_data32 = type[m];
-			if (pkcs11_data32 == PKCS11_UNDEFINED_ID) {
-				free(pkcs11_pdata);
-				return CKR_MECHANISM_INVALID;
+			mech_buf[m] = type[m];
+			if (mech_buf[m] == PKCS11_UNDEFINED_ID) {
+				rv = CKR_MECHANISM_INVALID;
+				goto out;
 			}
-
-			((uint32_t *)pkcs11_pdata)[m] = pkcs11_data32;
 		}
+		pkcs11_pdata = mech_buf;
 		break;
 	/* Attributes which data value do not need conversion (aside ulong) */
 	default:
 		if (ck_attr_is_ulong(attr->type)) {
-			pkcs11_data32 = (uint32_t)ck_ulong;
+			CK_ULONG ck_ulong = 0;
+
+			if (attr->ulValueLen != sizeof(CK_ULONG))
+				return CKR_ATTRIBUTE_TYPE_INVALID;
+
+			memcpy(&ck_ulong, attr->pValue, sizeof(ck_ulong));
+			pkcs11_data32 = ck_ulong;
 			pkcs11_pdata = &pkcs11_data32;
 			pkcs11_size = sizeof(uint32_t);
 		} else {
@@ -247,23 +238,21 @@ static CK_RV serialize_ck_attribute(struct serializer *obj, CK_ATTRIBUTE *attr)
 		break;
 	}
 
-	rv = serialize_32b(obj, pkcs11_id);
+	rv = serialize_32b(obj, attr->type);
 	if (rv)
-		goto bail;
+		goto out;
 
 	rv = serialize_32b(obj, pkcs11_size);
 	if (rv)
-		goto bail;
+		goto out;
 
 	rv = serialize_buffer(obj, pkcs11_pdata, pkcs11_size);
 	if (rv)
-		goto bail;
+		goto out;
 
 	obj->item_count++;
-
-bail:
-	if (pkcs11_pdata_alloced)
-		free(pkcs11_pdata);
+out:
+	free(mech_buf);
 
 	return rv;
 }
@@ -430,26 +419,15 @@ static int ck_attr_is_generic(CK_ULONG attribute_id)
 CK_RV serialize_ck_attributes(struct serializer *obj,
 			      CK_ATTRIBUTE_PTR attributes, CK_ULONG count)
 {
-	CK_ATTRIBUTE_PTR cur_attr = attributes;
-	CK_ULONG n = count;
+	CK_ULONG n = 0;
 	CK_RV rv = CKR_OK;
 
 	rv = init_serial_object(obj);
 	if (rv)
 		return rv;
 
-#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
-	rv = serialize_generic_attributes(obj, attributes, count);
-	if (rv)
-		goto out;
-#endif
-
-	for (; n; n--, cur_attr++) {
-#ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
-		if (ck_attr_is_generic(cur_attr->type))
-			continue;
-#endif
-		rv = serialize_ck_attribute(obj, cur_attr);
+	for (n = 0; n < count; n++) {
+		rv = serialize_ck_attribute(obj, attributes + n);
 		if (rv)
 			break;
 	}
