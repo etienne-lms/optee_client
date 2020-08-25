@@ -278,7 +278,7 @@ CK_RV ck_token_mechanism_ids(CK_SLOT_ID slot,
 	size_t out_size = 0;
 	size_t n = 0;
 
-	if (!count || (*count && !mechanisms))
+	if (!count)
 		return CKR_ARGUMENTS_BAD;
 
 	/*
