@@ -1,6 +1,10 @@
 project(ckteec C)
 
-set(PROJECT_VERSION "0.1.0")
+set(MAJOR_VERSION 0)
+set(MINOR_VERSION 1)
+set(PATCH_VERSION 0)
+
+set(PROJECT_VERSION "${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}")
 
 ################################################################################
 # Packages
@@ -22,18 +26,18 @@ set (SRC
 	src/invoke_ta.c
 	src/pkcs11_processing.c
 	src/pkcs11_token.c
-	src/serialize_ck.c
 	src/serializer.c
+	src/serialize_ck.c
 )
 
 ################################################################################
 # Built library
 ################################################################################
-add_library (ckteec SHARED ${SRC})
+add_library (ckteec ${SRC})
 
 set_target_properties (ckteec PROPERTIES
 	VERSION ${PROJECT_VERSION}
-	SOVERSION ${PROJECT_NAME}
+	SOVERSION ${MAJOR_VERSION}
 )
 
 ################################################################################
