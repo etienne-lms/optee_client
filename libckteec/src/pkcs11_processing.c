@@ -987,7 +987,8 @@ CK_RV ck_get_object_size(CK_SESSION_HANDLE session,
 	uint32_t session_handle = session;
 	uint32_t obj_handle = obj;
 	char *buf = NULL;
-	uint32_t out_size = 0;
+	size_t out_size = 0;
+	uint32_t u32_sz = 0;
 
 	if (!p_size)
 		return CKR_ARGUMENTS_BAD;
@@ -1009,7 +1010,7 @@ CK_RV ck_get_object_size(CK_SESSION_HANDLE session,
 	memcpy(buf, &obj_handle, sizeof(obj_handle));
 
 	/* Shm io2: (out) [attributes] */
-	out_shm = ckteec_alloc_shm(sizeof(out_size), CKTEEC_SHM_OUT);
+	out_shm = ckteec_alloc_shm(sizeof(uint32_t), CKTEEC_SHM_OUT);
 	if (!out_shm){
 		rv = CKR_HOST_MEMORY;
 		goto bail;
@@ -1021,13 +1022,13 @@ CK_RV ck_get_object_size(CK_SESSION_HANDLE session,
 	if (rv)
 	    goto bail;
 
-	if (out_shm->size != sizeof(out_size)) {
+	if (out_shm->size != sizeof(uint32_t)) {
 		rv = CKR_DEVICE_ERROR;
 		goto bail;
 	}
 
-	memcpy(&out_size, out_shm->buffer, out_shm->size);
-	*p_size = out_size;
+	memcpy(&u32_sz, out_shm->buffer, out_shm->size);
+	*p_size = u32_sz;
 
 bail:
 	ckteec_free_shm(ctrl);
