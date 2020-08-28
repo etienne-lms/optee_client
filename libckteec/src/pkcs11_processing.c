@@ -142,7 +142,7 @@ CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
 {
 	CK_RV rv = CKR_GENERAL_ERROR;
 	TEEC_SharedMemory *ctrl = NULL;
-	struct serializer obj;
+	struct serializer obj = { };
 	uint32_t session_handle = session;
 	uint32_t key_handle = key;
 	size_t ctrl_size = 0;
@@ -182,8 +182,8 @@ CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
 				PKCS11_CMD_ENCRYPT_INIT, ctrl);
 
 bail:
-	release_serial_object(&obj);
 	ckteec_free_shm(ctrl);
+	release_serial_object(&obj);
 
 	return rv;
 }
@@ -313,8 +313,8 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 		rv = CKR_OK;
 
 bail:
-	ckteec_free_shm(in_shm);
 	ckteec_free_shm(out_shm);
+	ckteec_free_shm(in_shm);
 	ckteec_free_shm(ctrl);
 
 	return rv;

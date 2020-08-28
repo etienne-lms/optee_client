@@ -44,13 +44,13 @@
  * return code for the invoked command.
  *
  * Param#1 can be used for input data arguments of the invoked command.
- * It is unused or is a input memory reference, aka memref[1].
+ * It is unused or is an input memory reference, aka memref[1].
  * Evolution of the API may use memref[1] for output data as well.
  *
  * Param#2 is mostly used for output data arguments of the invoked command
  * and for output handles generated from invoked commands.
  * Few commands uses it for a secondary input data buffer argument.
- * It is unused or is a input/output/in-out memory reference, aka memref[2].
+ * It is unused or is an input/output/in-out memory reference, aka memref[2].
  *
  * Param#3 is currently unused and reserved for evolution of the API.
  */
@@ -252,8 +252,8 @@ enum pkcs11_ta_cmd {
 	PKCS11_CMD_LOGOUT = 14,
 
 	/*
-	 * PKCS11_CMD_CREATE_OBJECT - Create a raw object in the session or
-	 *			      token
+	 * PKCS11_CMD_CREATE_OBJECT - Create a raw client assembled object in
+	 *			      the session or token
 	 *
 	 *
 	 * [in]  memref[0] = [
@@ -279,6 +279,69 @@ enum pkcs11_ta_cmd {
 	 * This command relates to the PKCS#11 API function C_DestroyObject().
 	 */
 	PKCS11_CMD_DESTROY_OBJECT = 16,
+
+	/*
+	 * PKCS11_CMD_ENCRYPT_INIT - Initialize encryption processing
+	 * PKCS11_CMD_DECRYPT_INIT - Initialize decryption processing
+	 *
+	 * [in]  memref[0] = [
+	 *              32bit session handle,
+	 *              32bit object handle of the key,
+	 *              (struct pkcs11_attribute_head)mechanism + mecha params
+	 *	 ]
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 *
+	 * These commands relate to the PKCS#11 API functions
+	 * C_EncryptInit() and C_DecryptInit().
+	 */
+	PKCS11_CMD_ENCRYPT_INIT = 17,
+	PKCS11_CMD_DECRYPT_INIT = 18,
+
+	/*
+	 * PKCS11_CMD_ENCRYPT_UPDATE - Update encryption processing
+	 * PKCS11_CMD_DECRYPT_UPDATE - Update decryption processing
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [in]  memref[1] = input data to be processed
+	 * [out] memref[2] = output processed data
+	 *
+	 * These commands relate to the PKCS#11 API functions
+	 * C_EncryptUpdate() and C_DecryptUpdate().
+	 */
+	PKCS11_CMD_ENCRYPT_UPDATE = 19,
+	PKCS11_CMD_DECRYPT_UPDATE = 20,
+
+	/*
+	 * PKCS11_CMD_ENCRYPT_FINAL - Finalize encryption processing
+	 * PKCS11_CMD_DECRYPT_FINAL - Finalize decryption processing
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [out] memref[2] = output processed data
+	 *
+	 * These commands relate to the PKCS#11 API functions
+	 * C_EncryptFinal() and C_DecryptFinal().
+	 */
+	PKCS11_CMD_ENCRYPT_FINAL = 21,
+	PKCS11_CMD_DECRYPT_FINAL = 22,
+
+	/*
+	 * PKCS11_CMD_ENCRYPT_ONESHOT - Update and finalize encryption
+	 *				processing
+	 * PKCS11_CMD_DECRYPT_ONESHOT - Update and finalize decryption
+	 *				processing
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [in]  memref[1] = input data to be processed
+	 * [out] memref[2] = output processed data
+	 *
+	 * These commands relate to the PKCS#11 API functions C_Encrypt and
+	 * C_Decrypt.
+	 */
+	PKCS11_CMD_ENCRYPT_ONESHOT = 23,
+	PKCS11_CMD_DECRYPT_ONESHOT = 24,
 
 	/*
 	 * PKCS11_CMD_GET_SESSION_STATE - Retrieve the session state for later restore
@@ -414,67 +477,6 @@ enum pkcs11_ta_cmd {
 	 * This command relates to the PKCS#11 API functions C_GenerateKey().
 	 */
 	PKCS11_CMD_GENERATE_KEY = 127,
-
-	/*
-	 * PKCS11_CMD_ENCRYPT_INIT - Initialize encryption processing
-	 * PKCS11_CMD_DECRYPT_INIT - Initialize decryption processing
-	 *
-	 * [in]  memref[0] = [
-	 *              32bit session handle,
-	 *              32bit object handle of the key,
-	 *              (struct pkcs11_attribute_head)mechanism + mecha params
-	 *	 ]
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 *
-	 * These commands relate to the PKCS#11 API functions C_EncryptInit() and
-	 * C_DecryptInit().
-	 */
-	PKCS11_CMD_ENCRYPT_INIT = 128,
-	PKCS11_CMD_DECRYPT_INIT = 129,
-
-	/*
-	 * PKCS11_CMD_ENCRYPT_UPDATE - Update encryption processing
-	 * PKCS11_CMD_DECRYPT_UPDATE - Update decryption processing
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [in]  memref[1] = input data to be processed
-	 * [out] memref[2] = output processed data
-	 *
-	 * These commands relate to the PKCS#11 API functions C_EncryptUpdate() and
-	 * C_DecryptUpdate().
-	 */
-	PKCS11_CMD_ENCRYPT_UPDATE = 130,
-	PKCS11_CMD_DECRYPT_UPDATE = 131,
-
-	/*
-	 * PKCS11_CMD_ENCRYPT_FINAL - Finalize encryption processing
-	 * PKCS11_CMD_DECRYPT_FINAL - Finalize decryption processing
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [out] memref[2] = output processed data
-	 *
-	 * These commands relate to the PKCS#11 API functions C_EncryptFinal() and
-	 * C_DecryptFinal().
-	 */
-	PKCS11_CMD_ENCRYPT_FINAL = 132,
-	PKCS11_CMD_DECRYPT_FINAL = 133,
-
-	/*
-	 * PKCS11_CMD_ENCRYPT_ONESHOT - Update and finalize encryption processing
-	 * PKCS11_CMD_DECRYPT_ONESHOT - Update and finalize decryption processing
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [in]  memref[1] = input data to be processed
-	 * [out] memref[2] = output processed data
-	 *
-	 * These commands relate to the PKCS#11 API functions C_Encrypt and
-	 * C_Decrypt.
-	 */
-	PKCS11_CMD_ENCRYPT_ONESHOT = 134,
-	PKCS11_CMD_DECRYPT_ONESHOT = 135,
 
 	/*
 	 * PKCS11_CMD_SIGN_INIT - Initialize a signature computation processing
@@ -803,10 +805,10 @@ struct pkcs11_mechanism_info {
  * pkcs11_object_head - Header of object whose data are serialized in memory
  *
  * An object is made of several attributes. Attributes are stored one next to
- * the other with byte alignment as a serialized byte arrays. Appended
- * attributes byte arrays are prepend with this header structure that
- * defines the number of attribute items and the overall byte size of byte
- * array field pkcs11_object_head::attrs.
+ * the other with byte alignment as a serialized byte array. The byte array
+ * of serialized attributes is prepended with the size of the attrs[] array
+ * in bytes and the number of attributes in the array, yielding the struct
+ * pkcs11_object_head.
  *
  * @attrs_size - byte size of whole byte array attrs[]
  * @attrs_count - number of attribute items stored in attrs[]
@@ -833,44 +835,8 @@ struct pkcs11_attribute_head {
 	uint8_t data[];
 };
 
-// Boolean property attributes (BPA): bit position in a 64 bit mask
-// for boolean properties object can mandate as attribute, depending
-// on the object. These attributes are often accessed and it is
-// quicker to get then from a 64 bit field in the object instance
-// rather than searching into the object attributes.
-//
-// TODO: move this out of the TA API
-#define PKCS11_BOOLPROPH_FLAG		(1U << 31)
-#define PKCS11_BOOLPROPS_BASE		0
-#define PKCS11_BOOLPROPS_MAX		63
-
-enum boolprop_attr {
-	BPA_TOKEN		= 0x00,
-	BPA_PRIVATE		= 0x01,
-	BPA_TRUSTED		= 0x02,
-	BPA_SENSITIVE		= 0x03,
-	BPA_ENCRYPT		= 0x04,
-	BPA_DECRYPT		= 0x05,
-	BPA_WRAP		= 0x06,
-	BPA_UNWRAP		= 0x07,
-	BPA_SIGN		= 0x08,
-	BPA_SIGN_RECOVER	= 0x09,
-	BPA_VERIFY		= 0x0a,
-	BPA_VERIFY_RECOVER	= 0x0b,
-	BPA_DERIVE		= 0x0c,
-	BPA_EXTRACTABLE		= 0x0d,
-	BPA_LOCAL		= 0x0e,
-	BPA_NEVER_EXTRACTABLE	= 0x0f,
-	BPA_ALWAYS_SENSITIVE	= 0x10,
-	BPA_MODIFIABLE		= 0x11,
-	BPA_COPYABLE		= 0x12,
-	BPA_DESTROYABLE		= 0x13,
-	BPA_ALWAYS_AUTHENTICATE	= 0x14,
-	BPA_WRAP_WITH_TRUSTED	= 0x15,
-};
-
 /*
- * Attribute identification IDs
+ * Attribute identification IDs as of v2.40 excluding deprecated IDs.
  * Valid values for struct pkcs11_attribute_head::id
  * PKCS11_CKA_<x> reflects CryptoKi client API attribute IDs CKA_<x>.
  */
@@ -940,6 +906,10 @@ enum pkcs11_attr_id {
 	PKCS11_CKA_EC_POINT			= 0x0181,
 	PKCS11_CKA_ALWAYS_AUTHENTICATE		= 0x0202,
 	PKCS11_CKA_WRAP_WITH_TRUSTED		= 0x0210,
+	/*
+	 * The leading 4 comes from the PKCS#11 spec or:ing with
+	 * CKF_ARRAY_ATTRIBUTE = 0x40000000.
+	 */
 	PKCS11_CKA_WRAP_TEMPLATE		= 0x40000211,
 	PKCS11_CKA_UNWRAP_TEMPLATE		= 0x40000212,
 	PKCS11_CKA_DERIVE_TEMPLATE		= 0x40000213,
@@ -977,6 +947,10 @@ enum pkcs11_attr_id {
 	PKCS11_CKA_REQUIRED_CMS_ATTRIBUTES	= 0x0501,
 	PKCS11_CKA_DEFAULT_CMS_ATTRIBUTES	= 0x0502,
 	PKCS11_CKA_SUPPORTED_CMS_ATTRIBUTES	= 0x0503,
+	/*
+	 * The leading 4 comes from the PKCS#11 spec or:ing with
+	 * CKF_ARRAY_ATTRIBUTE = 0x40000000.
+	 */
 	PKCS11_CKA_ALLOWED_MECHANISMS		= 0x40000600,
 	/* Temporary storage until DER/BigInt conversion is available */
 	PKCS11_CKA_EC_POINT_X			= 0x80001000,
@@ -1006,6 +980,7 @@ enum pkcs11_class_id {
 /*
  * Valid values for attribute PKCS11_CKA_KEY_TYPE
  * PKCS11_CKK_<x> reflects CryptoKi client API key type IDs CKK_<x>.
+ * Note that this is only a subset of the PKCS#11 specification.
  */
 enum pkcs11_key_type {
 	PKCS11_CKK_RSA				= 0x000,
@@ -1132,7 +1107,10 @@ enum pkcs11_mechanism_id {
 	PKCS11_CKM_AES_CBC_ENCRYPT_DATA		= 0x01105,
 	PKCS11_CKM_AES_KEY_WRAP			= 0x02109,
 	PKCS11_CKM_AES_KEY_WRAP_PAD		= 0x0210a,
-	/* PKCS11 added IDs for operation no related to a CK mechanism ID */
+	/*
+	 * Vendor extensions below.
+	 * PKCS11 added IDs for operation not related to a CK mechanism ID
+	 */
 	PKCS11_PROCESSING_IMPORT		= 0x80000000,
 	PKCS11_PROCESSING_COPY			= 0x80000001,
 	PKCS11_CKM_UNDEFINED_ID			= PKCS11_UNDEFINED_ID,

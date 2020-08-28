@@ -25,69 +25,6 @@ struct ck_ref {
 	CK_ULONG len;
 };
 
-#if 0
-/*
- * Append cryptoki generic buffer reference structure into a serial
- * object for sharing with the PKCS11 TA.
- *
- * ck_ref points to a structure aligned CK reference (attributes or else)
- */
-static CK_RV serialize_ck_ref(struct serializer *obj, void *ck_ref)
-{
-	struct ck_ref *ref = ck_ref;
-	CK_RV rv;
-
-	rv = serialize_ck_ulong(obj, ref->id);
-	if (rv)
-		return rv;
-
-	rv = serialize_ck_ulong(obj, ref->len);
-	if (rv)
-		return rv;
-
-	rv = serialize_buffer(obj, ref->ptr, ref->len);
-	if (rv)
-		return rv;
-
-	obj->item_count++;
-
-	return rv;
-}
-
-/*
- * ck_ref points to a structure aligned CK reference (attributes or else)
- *
- * Same as serialize_ck_ref but reference is a ULONG so the blob size
- * to be set accoring to the 32bit/64bit configuration of target CK ABI.
- */
-static CK_RV serialize_ulong_ck_ref(struct serializer *obj, void *ck_ref)
-{
-	struct ck_ref *ref = ck_ref;
-	CK_ULONG ck_value;
-	uint32_t pkcs11_value;
-	CK_RV rv;
-
-	rv = serialize_ck_ulong(obj, ref->id);
-	if (rv)
-		return rv;
-
-	rv = serialize_ck_ulong(obj, sizeof(pkcs11_value));
-	if (rv)
-		return rv;
-
-	memcpy(&ck_value, ref->ptr, sizeof(CK_ULONG));
-	pkcs11_value = ck_value;
-
-	rv = serialize_buffer(obj, &pkcs11_value, sizeof(pkcs11_value));
-	if (rv)
-		return rv;
-
-	obj->item_count++;
-
-	return rv;
-}
-#endif
-
 /*
  * This is for attributes that contains data memory indirections.
  * In other words, an attributes that defines a list of attributes.
