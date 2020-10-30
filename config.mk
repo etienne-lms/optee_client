@@ -48,10 +48,10 @@ CFG_GP_SOCKETS ?= y
 #   to dump something
 CFG_TA_GPROF_SUPPORT ?= y
 
-# CFG_TA_FTRACE_SUPPORT
+# CFG_FTRACE_SUPPORT
 #   Enable dumping ftrace data, not used unless secure world decides
 #   to dump something
-CFG_TA_FTRACE_SUPPORT ?= y
+CFG_FTRACE_SUPPORT ?= y
 
 # Default output directory.
 # May be absolute, or relative to the optee_client source directory.
@@ -65,10 +65,4 @@ OO := $(if $(filter /%,$(O)),$(O),$(CURDIR)/../$(O))
 #########################################################################
 
 # Check that settings are coherent.
-
-ifdef ARM_TOOLCHAIN_DIR
-ifeq ($(wildcard ${ARM_TOOLCHAIN_DIR}/bin/${ARM_GCC_PREFIX}-gcc),)
-  $(error "ARM_TOOLCHAIN_DIR wrongly setup. Is ${ARM_TOOLCHAIN_DIR}")
-endif
-endif
 

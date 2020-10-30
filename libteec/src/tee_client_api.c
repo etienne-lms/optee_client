@@ -51,6 +51,17 @@
 /* How many device sequence numbers will be tried before giving up */
 #define TEEC_MAX_DEV_SEQ	10
 
+/* Helpers to access memref parts of a struct tee_ioctl_param */
+#define MEMREF_SHM_ID(p)	((p)->c)
+#define MEMREF_SHM_OFFS(p)	((p)->a)
+#define MEMREF_SIZE(p)		((p)->b)
+
+/*
+ * Internal flags of TEEC_SharedMemory::internal.flags
+ */
+#define SHM_FLAG_BUFFER_ALLOCED		(1u << 0)
+#define SHM_FLAG_SHADOW_BUFFER_ALLOCED	(1u << 1)
+
 static pthread_mutex_t teec_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void teec_mutex_lock(pthread_mutex_t *mu)
@@ -151,6 +162,7 @@ TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *ctx)
 		if (fd >= 0) {
 			ctx->fd = fd;
 			ctx->reg_mem = gen_caps & TEE_GEN_CAP_REG_MEM;
+			ctx->memref_null = gen_caps & TEE_GEN_CAP_MEMREF_NULL;
 			return TEEC_SUCCESS;
 		}
 	}
@@ -190,13 +202,35 @@ static TEEC_Result teec_pre_process_tmpref(TEEC_Context *ctx,
 	}
 	shm->size = tmpref->size;
 
-	res = TEEC_AllocateSharedMemory(ctx, shm);
-	if (res != TEEC_SUCCESS)
-		return res;
+	if (!tmpref->buffer) {
+		if (tmpref->size)
+			return TEEC_ERROR_BAD_PARAMETERS;
 
-	memcpy(shm->buffer, tmpref->buffer, tmpref->size);
-	param->u.memref.size = tmpref->size;
-	param->u.memref.shm_id = shm->id;
+		if (ctx->memref_null) {
+			/* Null pointer, indicate no shared memory attached */
+			MEMREF_SHM_ID(param) = TEE_MEMREF_NULL;
+			shm->id = -1;
+		} else {
+			res = TEEC_AllocateSharedMemory(ctx, shm);
+			if (res != TEEC_SUCCESS)
+				return res;
+			MEMREF_SHM_ID(param) = shm->id;
+		}
+	} else {
+		shm->buffer = tmpref->buffer;
+		res = TEEC_RegisterSharedMemory(ctx, shm);
+		if (res != TEEC_SUCCESS)
+			return res;
+
+		if (shm->shadow_buffer)
+			memcpy(shm->shadow_buffer, tmpref->buffer,
+			       tmpref->size);
+
+		MEMREF_SHM_ID(param) = shm->id;
+	}
+
+	MEMREF_SIZE(param) = tmpref->size;
+
 	return TEEC_SUCCESS;
 }
 
@@ -226,8 +260,9 @@ static TEEC_Result teec_pre_process_whole(
 	if (shm->shadow_buffer && (flags & TEEC_MEM_INPUT))
 		memcpy(shm->shadow_buffer, shm->buffer, shm->size);
 
-	param->u.memref.shm_id = shm->id;
-	param->u.memref.size = shm->size;
+	MEMREF_SHM_ID(param) = shm->id;
+	MEMREF_SIZE(param) = shm->size;
+
 	return TEEC_SUCCESS;
 }
 
@@ -260,6 +295,10 @@ static TEEC_Result teec_pre_process_partial(uint32_t param_type,
 	if ((shm->flags & req_shm_flags) != req_shm_flags)
 		return TEEC_ERROR_BAD_PARAMETERS;
 
+	if ((memref->offset + memref->size < memref->offset) ||
+	    (memref->offset + memref->size > shm->size))
+		return TEEC_ERROR_BAD_PARAMETERS;
+
 	/*
 	 * We're using a shadow buffer in this reference, copy the real buffer
 	 * into the shadow buffer if needed. We'll copy it back once we've
@@ -269,9 +308,10 @@ static TEEC_Result teec_pre_process_partial(uint32_t param_type,
 		memcpy((char *)shm->shadow_buffer + memref->offset,
 		       (char *)shm->buffer + memref->offset, memref->size);
 
-	param->u.memref.shm_id = shm->id;
-	param->u.memref.shm_offs = memref->offset;
-	param->u.memref.size = memref->size;
+	MEMREF_SHM_ID(param) = shm->id;
+	MEMREF_SHM_OFFS(param) = memref->offset;
+	MEMREF_SIZE(param) = memref->size;
+
 	return TEEC_SUCCESS;
 }
 
@@ -303,8 +343,8 @@ static TEEC_Result teec_pre_process_operation(TEEC_Context *ctx,
 		case TEEC_VALUE_OUTPUT:
 		case TEEC_VALUE_INOUT:
 			params[n].attr = param_type;
-			params[n].u.value.a = operation->params[n].value.a;
-			params[n].u.value.b = operation->params[n].value.b;
+			params[n].a = operation->params[n].value.a;
+			params[n].b = operation->params[n].value.b;
 			break;
 		case TEEC_MEMREF_TEMP_INPUT:
 		case TEEC_MEMREF_TEMP_OUTPUT:
@@ -344,11 +384,12 @@ static void teec_post_process_tmpref(uint32_t param_type,
 			TEEC_SharedMemory *shm)
 {
 	if (param_type != TEEC_MEMREF_TEMP_INPUT) {
-		if (param->u.memref.size <= tmpref->size && tmpref->buffer)
-			memcpy(tmpref->buffer, shm->buffer,
-			       param->u.memref.size);
+		if (MEMREF_SIZE(param) <= tmpref->size && tmpref->buffer &&
+		    shm->shadow_buffer)
+			memcpy(tmpref->buffer, shm->shadow_buffer,
+			       MEMREF_SIZE(param));
 
-		tmpref->size = param->u.memref.size;
+		tmpref->size = MEMREF_SIZE(param);
 	}
 }
 
@@ -364,11 +405,11 @@ static void teec_post_process_whole(TEEC_RegisteredMemoryReference *memref,
 		 * the shadow buffer into the real buffer now that we've
 		 * returned from secure world.
 		 */
-		if (shm->shadow_buffer && param->u.memref.size <= shm->size)
+		if (shm->shadow_buffer && MEMREF_SIZE(param) <= shm->size)
 			memcpy(shm->buffer, shm->shadow_buffer,
-			       param->u.memref.size);
+			       MEMREF_SIZE(param));
 
-		memref->size = param->u.memref.size;
+		memref->size = MEMREF_SIZE(param);
 	}
 }
 
@@ -384,12 +425,12 @@ static void teec_post_process_partial(uint32_t param_type,
 		 * the shadow buffer into the real buffer now that we've
 		 * returned from secure world.
 		 */
-		if (shm->shadow_buffer && param->u.memref.size <= memref->size)
+		if (shm->shadow_buffer && MEMREF_SIZE(param) <= memref->size)
 			memcpy((char *)shm->buffer + memref->offset,
 			       (char *)shm->shadow_buffer + memref->offset,
-			       param->u.memref.size);
+			       MEMREF_SIZE(param));
 
-		memref->size = param->u.memref.size;
+		memref->size = MEMREF_SIZE(param);
 	}
 }
 
@@ -411,8 +452,8 @@ static void teec_post_process_operation(TEEC_Operation *operation,
 			break;
 		case TEEC_VALUE_OUTPUT:
 		case TEEC_VALUE_INOUT:
-			operation->params[n].value.a = params[n].u.value.a;
-			operation->params[n].value.b = params[n].u.value.b;
+			operation->params[n].value.a = params[n].a;
+			operation->params[n].value.b = params[n].b;
 			break;
 		case TEEC_MEMREF_TEMP_INPUT:
 		case TEEC_MEMREF_TEMP_OUTPUT:
@@ -480,6 +521,59 @@ static void uuid_to_octets(uint8_t d[TEE_IOCTL_UUID_LEN], const TEEC_UUID *s)
 	memcpy(d + 8, s->clockSeqAndNode, sizeof(s->clockSeqAndNode));
 }
 
+static void setup_client_data(struct tee_ioctl_open_session_arg *arg,
+			      uint32_t connection_method,
+			      const void *connection_data)
+{
+	arg->clnt_login = connection_method;
+
+	switch (connection_method) {
+	case TEE_IOCTL_LOGIN_PUBLIC:
+		/* No connection data to pass */
+		break;
+	case TEE_IOCTL_LOGIN_USER:
+		/* Kernel auto-fills UID and forms client UUID */
+		break;
+	case TEE_IOCTL_LOGIN_GROUP:
+		/*
+		 * Connection data for group login is uint32_t and rest of
+		 * clnt_uuid is set as zero.
+		 *
+		 * Kernel verifies group membership and then forms client UUID.
+		 */
+		memcpy(arg->clnt_uuid, connection_data, sizeof(gid_t));
+		break;
+	case TEE_IOCTL_LOGIN_APPLICATION:
+		/*
+		 * Kernel auto-fills application identifier and forms client
+		 * UUID.
+		 */
+		break;
+	case TEE_IOCTL_LOGIN_USER_APPLICATION:
+		/*
+		 * Kernel auto-fills application identifier, UID and forms
+		 * client UUID.
+		 */
+		break;
+	case TEE_IOCTL_LOGIN_GROUP_APPLICATION:
+		/*
+		 * Connection data for group login is uint32_t rest of
+		 * clnt_uuid is set as zero.
+		 *
+		 * Kernel verifies group membership, auto-fills application
+		 * identifier and then forms client UUID.
+		 */
+		memcpy(arg->clnt_uuid, connection_data, sizeof(gid_t));
+		break;
+	default:
+		/*
+		 * Unknown login method, don't pass any connection data as we
+		 * don't know size.
+		 */
+		break;
+	}
+}
+
 TEEC_Result TEEC_OpenSession(TEEC_Context *ctx, TEEC_Session *session,
 			const TEEC_UUID *destination,
 			uint32_t connection_method, const void *connection_data,
@@ -504,8 +598,6 @@ TEEC_Result TEEC_OpenSession(TEEC_Context *ctx, TEEC_Session *session,
 	memset(&shm, 0, sizeof(shm));
 	memset(&buf_data, 0, sizeof(buf_data));
 
-	(void)&connection_data;
-
 	if (!ctx || !session) {
 		eorig = TEEC_ORIGIN_API;
 		res = TEEC_ERROR_BAD_PARAMETERS;
@@ -520,7 +612,8 @@ TEEC_Result TEEC_OpenSession(TEEC_Context *ctx, TEEC_Session *session,
 	params = (struct tee_ioctl_param *)(arg + 1);
 
 	uuid_to_octets(arg->uuid, destination);
-	arg->clnt_login = connection_method;
+
+	setup_client_data(arg, connection_method, connection_data);
 
 	res = teec_pre_process_operation(ctx, operation, params, shm);
 	if (res != TEEC_SUCCESS) {
@@ -665,6 +758,7 @@ void TEEC_RequestCancellation(TEEC_Operation *operation)
 
 TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *ctx, TEEC_SharedMemory *shm)
 {
+	TEEC_Result res = TEEC_SUCCESS;
 	int fd = 0;
 	size_t s = 0;
 
@@ -674,15 +768,48 @@ TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *ctx, TEEC_SharedMemory *shm)
 	if (!shm->flags || (shm->flags & ~(TEEC_MEM_INPUT | TEEC_MEM_OUTPUT)))
 		return TEEC_ERROR_BAD_PARAMETERS;
 
+	if (!shm->buffer)
+		return TEEC_ERROR_BAD_PARAMETERS;
+
 	s = shm->size;
 	if (!s)
 		s = 8;
 	if (ctx->reg_mem) {
 		fd = teec_shm_register(ctx->fd, shm->buffer, s, &shm->id);
-		if (fd < 0)
+		if (fd >= 0) {
+			shm->registered_fd = fd;
+			shm->shadow_buffer = NULL;
+			shm->internal.flags = 0;
+			goto out;
+		}
+
+		/*
+		 * If we're here TEE_IOC_SHM_REGISTER failed, probably
+		 * because some read-only memory was supplied and the Linux
+		 * kernel doesn't like that at the moment.
+		 *
+		 * The error could also have some other origin. In any case
+		 * we're not making matters worse by trying to allocate and
+		 * register a shadow buffer before giving up.
+		 */
+		shm->shadow_buffer = malloc(s);
+		if (!shm->shadow_buffer)
 			return TEEC_ERROR_OUT_OF_MEMORY;
-		shm->registered_fd = fd;
+		fd = teec_shm_register(ctx->fd, shm->shadow_buffer, s,
+				       &shm->id);
+		if (fd >= 0) {
+			shm->registered_fd = fd;
+			shm->internal.flags = SHM_FLAG_SHADOW_BUFFER_ALLOCED;
+			goto out;
+		}
+
+		if (errno == ENOMEM)
+			res = TEEC_ERROR_OUT_OF_MEMORY;
+		else
+			res = TEEC_ERROR_GENERIC;
+		free(shm->shadow_buffer);
 		shm->shadow_buffer = NULL;
+		return res;
 	} else {
 		fd = teec_shm_alloc(ctx->fd, s, &shm->id);
 		if (fd < 0)
@@ -696,10 +823,11 @@ TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *ctx, TEEC_SharedMemory *shm)
 			return TEEC_ERROR_OUT_OF_MEMORY;
 		}
 		shm->registered_fd = -1;
+		shm->internal.flags = 0;
 	}
 
+out:
 	shm->alloced_size = s;
-	shm->buffer_allocated = false;
 	return TEEC_SUCCESS;
 }
 
@@ -775,7 +903,7 @@ TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *ctx, TEEC_SharedMemory *shm)
 
 	shm->shadow_buffer = NULL;
 	shm->alloced_size = s;
-	shm->buffer_allocated = true;
+	shm->internal.flags = SHM_FLAG_BUFFER_ALLOCED;
 	return TEEC_SUCCESS;
 }
 
@@ -784,21 +912,30 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *shm)
 	if (!shm || shm->id == -1)
 		return;
 
-	if (shm->shadow_buffer)
-		munmap(shm->shadow_buffer, shm->alloced_size);
-	else if (shm->buffer) {
+	if (shm->shadow_buffer) {
 		if (shm->registered_fd >= 0) {
-			if (shm->buffer_allocated)
+			if (shm->internal.flags &
+			    SHM_FLAG_SHADOW_BUFFER_ALLOCED)
+				free(shm->shadow_buffer);
+			close(shm->registered_fd);
+		} else {
+			munmap(shm->shadow_buffer, shm->alloced_size);
+		}
+	} else if (shm->buffer) {
+		if (shm->registered_fd >= 0) {
+			if (shm->internal.flags & SHM_FLAG_BUFFER_ALLOCED)
 				free(shm->buffer);
 			close(shm->registered_fd);
-		} else
+		} else {
 			munmap(shm->buffer, shm->alloced_size);
-	} else if (shm->registered_fd >= 0)
+		}
+	} else if (shm->registered_fd >= 0) {
 		close(shm->registered_fd);
+	}
 
 	shm->id = -1;
 	shm->shadow_buffer = NULL;
 	shm->buffer = NULL;
 	shm->registered_fd = -1;
-	shm->buffer_allocated = false;
+	shm->internal.flags = 0;
 }

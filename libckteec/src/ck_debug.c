@@ -12,19 +12,8 @@
 
 #include "local_utils.h"
 
-/* CK2STR_ENTRY_TBL will soon deprecate in favor to CK2STR_ENTRY */
-#define CK2STR_ENTRY_TBL(label)	{ .id = label, .string = #label }
-
 #define CK2STR_ENTRY(id)	case id: return #id
 
-struct ck2str {
-	CK_ULONG id;
-	const char *string;
-};
-
-/*
- * ckr2str - Return a pointer to a string buffer of "CKR_xxx\0" return value ID
- */
 const char *ckr2str(CK_RV id)
 {
 	switch (id) {
@@ -589,66 +578,14 @@ char *ck_mecha_flag2str(CK_ULONG flags)
 	return __flag2str(flags, CKDBG_MECHA);
 }
 
-static struct ck2str class2str_table[] = {
-	CK2STR_ENTRY_TBL(CKO_DATA),
-	CK2STR_ENTRY_TBL(CKO_CERTIFICATE),
-	CK2STR_ENTRY_TBL(CKO_PUBLIC_KEY),
-	CK2STR_ENTRY_TBL(CKO_PRIVATE_KEY),
-	CK2STR_ENTRY_TBL(CKO_SECRET_KEY),
-	CK2STR_ENTRY_TBL(CKO_HW_FEATURE),
-	CK2STR_ENTRY_TBL(CKO_DOMAIN_PARAMETERS),
-	CK2STR_ENTRY_TBL(CKO_MECHANISM),
-	CK2STR_ENTRY_TBL(CKO_OTP_KEY),
-	CK2STR_ENTRY_TBL(CKO_VENDOR_DEFINED),
-};
-
-const char *ckclass2str(CK_ULONG id)
+const char *cktype2str(CK_ULONG id, CK_OBJECT_CLASS class)
 {
-	const int count = sizeof(class2str_table) / sizeof(struct ck2str);
-	int n;
-
-	for (n = 0; n < count; n++)
-		if (id == class2str_table[n].id)
-			return class2str_table[n].string;
-
-	return NULL;
-}
-
-static struct ck2str symkey2str_table[] = {
-	CK2STR_ENTRY_TBL(CKK_RSA),
-	CK2STR_ENTRY_TBL(CKK_DSA),
-	CK2STR_ENTRY_TBL(CKK_DH),
-	CK2STR_ENTRY_TBL(CKK_ECDSA),
-	CK2STR_ENTRY_TBL(CKK_EC),
-	CK2STR_ENTRY_TBL(CKK_GENERIC_SECRET),
-	CK2STR_ENTRY_TBL(CKK_DES),
-	CK2STR_ENTRY_TBL(CKK_DES2),
-	CK2STR_ENTRY_TBL(CKK_DES3),
-	CK2STR_ENTRY_TBL(CKK_AES),
-	CK2STR_ENTRY_TBL(CKK_HOTP),
-	CK2STR_ENTRY_TBL(CKK_MD5_HMAC),
-	CK2STR_ENTRY_TBL(CKK_SHA_1_HMAC),
-	CK2STR_ENTRY_TBL(CKK_SHA256_HMAC),
-	CK2STR_ENTRY_TBL(CKK_SHA384_HMAC),
-	CK2STR_ENTRY_TBL(CKK_SHA512_HMAC),
-	CK2STR_ENTRY_TBL(CKK_SHA224_HMAC),
-	CK2STR_ENTRY_TBL(CKK_VENDOR_DEFINED),
-};
-
-const char *cktype2str(CK_ULONG id, CK_ULONG class)
-{
-	int count;
-	struct ck2str *table;
-	int n;
-
 	switch (class) {
 	case CKO_DATA:
 		/* No type for data object */
 		return NULL;
 	case CKO_SECRET_KEY:
-		count = sizeof(symkey2str_table);
-		table = symkey2str_table;
-		break;
+		return ckk2str(id);
 	case CKO_MECHANISM:
 		return ckm2str(id);
 	case CKO_CERTIFICATE:
@@ -663,11 +600,4 @@ const char *cktype2str(CK_ULONG id, CK_ULONG class)
 		/* Unknwon */
 		return NULL;
 	}
-
-	count /= sizeof(struct ck2str);
-	for (n = 0; n < count; n++)
-		if (id == table[n].id)
-			return table[n].string;
-
-	return NULL;
 }

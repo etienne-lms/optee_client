@@ -24,5 +24,4 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 /* Log content of a serialized object */
 CK_RV serial_trace_attributes(char *prefix, struct serializer *obj);
 CK_RV serial_trace_attributes_from_head(char *prefix, void *ref);
-
 #endif /*LIBCKTEEC_SERIALIZE_CK_H*/

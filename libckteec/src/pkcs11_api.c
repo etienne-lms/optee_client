@@ -12,7 +12,6 @@
 #include "ck_helpers.h"
 #include "invoke_ta.h"
 #include "local_utils.h"
-#include "ck_helpers.h"
 #include "pkcs11_processing.h"
 #include "pkcs11_token.h"
 

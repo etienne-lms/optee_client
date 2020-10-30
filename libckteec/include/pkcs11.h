@@ -460,7 +460,7 @@ struct CK_KEY_DERIVATION_STRING_DATA {
 	CK_ULONG		ulLen;
 };
 
-/* AES derivation by CBC encryption parameters */
+/* AES CBC encryption parameters */
 typedef struct CK_AES_CBC_ENCRYPT_DATA_PARAMS CK_AES_CBC_ENCRYPT_DATA_PARAMS;
 typedef struct CK_AES_CBC_ENCRYPT_DATA_PARAMS
 					*CK_AES_CBC_ENCRYPT_DATA_PARAMS_PTR;

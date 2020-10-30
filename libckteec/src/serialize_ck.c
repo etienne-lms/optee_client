@@ -500,6 +500,7 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
  *	CK_BYTE cb[16];
  * } CK_AES_CTR_PARAMS;
  */
+
 static CK_RV serialize_mecha_aes_ctr(struct serializer *obj,
 				     CK_MECHANISM_PTR mecha)
 {
@@ -922,6 +923,7 @@ CK_RV serialize_ck_mecha_params(struct serializer *obj,
 
 	case CKM_AES_CTR:
 		return serialize_mecha_aes_ctr(obj, &mecha);
+
 	case CKM_AES_CCM:
 		return serialize_mecha_aes_ccm(obj, &mecha);
 	case CKM_AES_GCM:

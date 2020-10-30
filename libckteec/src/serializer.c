@@ -17,8 +17,6 @@ CK_RV init_serial_object(struct serializer *obj)
 	struct pkcs11_object_head head = { };
 
 	memset(obj, 0, sizeof(*obj));
-	obj->object = PKCS11_UNDEFINED_ID;
-	obj->type = PKCS11_UNDEFINED_ID;
 
 	return serialize_buffer(obj, &head, sizeof(head));
 }
@@ -28,7 +26,6 @@ void finalize_serial_object(struct serializer *obj)
 	struct pkcs11_object_head head = { };
 
 #ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
-fsdf fsd fsdf sdf
 	head.object = obj->object;
 	head.type = obj->type;
 #ifdef PKCS11_WITH_BOOLPROP_ATTRIBS_IN_HEAD
@@ -36,6 +33,7 @@ fsdf fsd fsdf sdf
 	head.boolproph = *((uint32_t *)obj->boolprop + 1);
 #endif
 #endif
+
 	head.attrs_size = obj->size - sizeof(head);
 	head.attrs_count = obj->item_count;
 	memcpy(obj->buffer, &head, sizeof(head));

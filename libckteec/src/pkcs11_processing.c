@@ -15,34 +15,6 @@
 #include "serializer.h"
 #include "serialize_ck.h"
 
-/*
- * Helper for input data buffers where caller may refer to user application
- * memory that cannot be registered as shared memory as seen with read-only
- * data.
- */
-static TEEC_SharedMemory *register_or_alloc_input_buffer(void *in, size_t len)
-{
-	TEEC_SharedMemory *shm = NULL;
-
-	if (!in)
-		return NULL;
-
-	shm = ckteec_register_shm(in, len, CKTEEC_SHM_IN);
-	if (!shm) {
-		/*
-		 * Input buffer cannot be registered: allocated a
-		 * temporary input shared buffer rather than failing.
-		 */
-		shm = ckteec_alloc_shm(len, CKTEEC_SHM_IN);
-		if (!shm)
-			return NULL;
-
-		memcpy(shm->buffer, in, len);
-	}
-
-	return shm;
-}
-
 CK_RV ck_create_object(CK_SESSION_HANDLE session, CK_ATTRIBUTE_PTR attribs,
 		       CK_ULONG count, CK_OBJECT_HANDLE_PTR handle)
 {
@@ -215,7 +187,7 @@ CK_RV ck_encdecrypt_update(CK_SESSION_HANDLE session,
 
 	/* Shm io1: input data buffer if any */
 	if (in_len) {
-		in_shm = register_or_alloc_input_buffer(in, in_len);
+		in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
 		if (!in_shm) {
 			rv = CKR_HOST_MEMORY;
 			goto bail;
@@ -281,8 +253,7 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 
 	/* Shm io1: input data buffer */
 	if (in_len) {
-		in_shm = register_or_alloc_input_buffer(in, in_len);
-
+		in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
 		if (!in_shm) {
 			rv = CKR_HOST_MEMORY;
 			goto bail;
@@ -621,7 +592,7 @@ CK_RV ck_signverify_update(CK_SESSION_HANDLE session,
 
 	/* Shm io1: intput data */
 	if (in_len) {
-		in_shm = register_or_alloc_input_buffer(in, in_len);
+		in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
 		if (!in_shm) {
 			rv = CKR_HOST_MEMORY;
 			goto bail;
@@ -665,7 +636,7 @@ CK_RV ck_signverify_oneshot(CK_SESSION_HANDLE session,
 
 	/* Shm io1: input payload */
 	if (in_len) {
-		io1 = register_or_alloc_input_buffer(in, in_len);
+		io1 = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
 		if (!io1) {
 			rv = CKR_HOST_MEMORY;
 			goto bail;
@@ -681,7 +652,7 @@ CK_RV ck_signverify_oneshot(CK_SESSION_HANDLE session,
 	if (sign)
 		io2 = ckteec_register_shm(sign_ref, *sign_len, CKTEEC_SHM_OUT);
 	else
-		io2 = register_or_alloc_input_buffer(sign_ref, *sign_len);
+		io2 = ckteec_register_shm(sign_ref, *sign_len, CKTEEC_SHM_IN);
 
 	if (!io2) {
 		rv = CKR_HOST_MEMORY;
@@ -738,7 +709,8 @@ CK_RV ck_signverify_final(CK_SESSION_HANDLE session,
 			io = ckteec_register_shm(sign_ref, *sign_len,
 						 CKTEEC_SHM_OUT);
 		else
-			io = register_or_alloc_input_buffer(sign_ref, *sign_len);
+			io = ckteec_register_shm(sign_ref, *sign_len,
+						 CKTEEC_SHM_IN);
 	} else {
 		io = ckteec_alloc_shm(0, sign ? CKTEEC_SHM_OUT : CKTEEC_SHM_IN);
 	}

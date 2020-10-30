@@ -71,4 +71,3 @@ CK_RV serial_get_attribute_multi(void *ref, uint32_t attribute,
 			   void *attr, size_t *attr_size);
 
 #endif /*LIBCKTEEC_SERIALIZER_H*/
-
