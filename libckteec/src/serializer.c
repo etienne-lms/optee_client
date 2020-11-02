@@ -14,7 +14,7 @@
 
 CK_RV init_serial_object(struct serializer *obj)
 {
-	struct pkcs11_object_head head = { };
+	struct pkcs11_object_head head = { 0 };
 
 	memset(obj, 0, sizeof(*obj));
 
@@ -23,7 +23,7 @@ CK_RV init_serial_object(struct serializer *obj)
 
 void finalize_serial_object(struct serializer *obj)
 {
-	struct pkcs11_object_head head = { };
+	struct pkcs11_object_head head = { 0 };
 
 #ifdef PKCS11_WITH_GENERIC_ATTRIBS_IN_HEAD
 	head.object = obj->object;
