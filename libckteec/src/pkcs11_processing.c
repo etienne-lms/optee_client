@@ -252,12 +252,10 @@ CK_RV ck_encdecrypt_oneshot(CK_SESSION_HANDLE session,
 	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
 
 	/* Shm io1: input data buffer */
-	if (in_len) {
-		in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
-		if (!in_shm) {
-			rv = CKR_HOST_MEMORY;
-			goto bail;
-		}
+	in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
+	if (!in_shm) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
 
 	/* Shm io2: output data buffer */
@@ -524,7 +522,7 @@ CK_RV ck_signverify_init(CK_SESSION_HANDLE session,
 {
 	CK_RV rv = CKR_GENERAL_ERROR;
 	TEEC_SharedMemory *ctrl = NULL;
-	struct serializer obj;
+	struct serializer obj = { 0 };
 	uint32_t session_handle = session;
 	uint32_t key_handle = key;
 	size_t ctrl_size = 0;
@@ -590,13 +588,11 @@ CK_RV ck_signverify_update(CK_SESSION_HANDLE session,
 	}
 	memcpy(ctrl->buffer, &session_handle, sizeof(session_handle));
 
-	/* Shm io1: intput data */
-	if (in_len) {
-		in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
-		if (!in_shm) {
-			rv = CKR_HOST_MEMORY;
-			goto bail;
-		}
+	/* Shm io1: input data */
+	in_shm = ckteec_register_shm(in, in_len, CKTEEC_SHM_IN);
+	if (!in_shm) {
+		rv = CKR_HOST_MEMORY;
+		goto bail;
 	}
 
 	rv = ckteec_invoke_ctrl_in(sign ? PKCS11_CMD_SIGN_UPDATE :
