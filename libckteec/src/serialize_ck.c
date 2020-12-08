@@ -973,7 +973,7 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 	*(prefix2 + prefix_len + 1 + 4) = '\0';
 
 	for (; cur < (char *)end; cur += next) {
-		struct pkcs11_attribute_head ref = { };
+		struct pkcs11_attribute_head ref = { 0 };
 
 		memcpy(&ref, cur, sizeof(ref));
 		next = sizeof(ref) + ref.size;
@@ -1007,7 +1007,7 @@ static CK_RV trace_attributes(char *prefix, void *src, void *end)
 
 CK_RV serial_trace_attributes_from_head(char *prefix, void *ref)
 {
-	struct pkcs11_object_head head = { };
+	struct pkcs11_object_head head = { 0 };
 	char *pre = NULL;
 	CK_RV rv = CKR_GENERAL_ERROR;
 
