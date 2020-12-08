@@ -328,9 +328,9 @@ enum pkcs11_ta_cmd {
 
 	/*
 	 * PKCS11_CMD_ENCRYPT_ONESHOT - Update and finalize encryption
-	 *				processing
+	 *                              processing
 	 * PKCS11_CMD_DECRYPT_ONESHOT - Update and finalize decryption
-	 *				processing
+	 *                              processing
 	 *
 	 * [in]  memref[0] = 32bit session handle
 	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
@@ -342,6 +342,102 @@ enum pkcs11_ta_cmd {
 	 */
 	PKCS11_CMD_ENCRYPT_ONESHOT = 23,
 	PKCS11_CMD_DECRYPT_ONESHOT = 24,
+
+	/*
+	 * PKCS11_CMD_SIGN_INIT   - Initialize a signature computation
+	 *                          processing
+	 * PKCS11_CMD_VERIFY_INIT - Initialize a signature verification
+	 *                          processing
+	 *
+	 * [in]  memref[0] = [
+	 *              32bit session handle,
+	 *              32bit key handle,
+	 *              (struct pkcs11_attribute_head)mechanism +
+	 *                                            mechanism params,
+	 *	 ]
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 *
+	 * These commands relate to the PKCS#11 API functions C_SignInit() and
+	 * C_VerifyInit().
+	 */
+	PKCS11_CMD_SIGN_INIT = 25,
+	PKCS11_CMD_VERIFY_INIT = 26,
+
+	/*
+	 * PKCS11_CMD_SIGN_UPDATE   - Update a signature computation processing
+	 * PKCS11_CMD_VERIFY_UPDATE - Update a signature verification processing
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [in]  memref[1] = input data to be processed
+	 *
+	 * These commands relate to the PKCS#11 API functions C_SignUpdate() and
+	 * C_VerifyUpdate().
+	 */
+	PKCS11_CMD_SIGN_UPDATE = 27,
+	PKCS11_CMD_VERIFY_UPDATE = 28,
+
+	/*
+	 * PKCS11_CMD_SIGN_FINAL - Finalize a signature computation processing
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [out] memref[2] = output signature
+	 *
+	 * This command relates to the PKCS#11 API functions C_SignFinal().
+	 */
+	PKCS11_CMD_SIGN_FINAL = 29,
+
+	/*
+	 * PKCS11_CMD_VERIFY_FINAL - Finalize a signature verification
+	 *                           processing
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [in]  memref[2] = input signature to be processed
+	 *
+	 * This command relates to the PKCS#11 API functions C_VerifyFinal().
+	 */
+	PKCS11_CMD_VERIFY_FINAL = 30,
+
+	/*
+	 * PKCS11_CMD_SIGN_ONESHOT - Compute a signature
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [in]  memref[1] = input data to be processed
+	 * [out] memref[2] = byte array: generated signature
+	 *
+	 * This command relates to the PKCS#11 API function C_Sign().
+	 */
+	PKCS11_CMD_SIGN_ONESHOT = 31,
+
+	/*
+	 * PKCS11_CMD_VERIFY_ONESHOT - Compute and compare a signature
+	 *
+	 * [in]  memref[0] = 32bit session handle
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [in]  memref[1] = input data to be processed
+	 * [in]  memref[2] = input signature to be processed
+	 *
+	 * This command relates to the PKCS#11 API function C_Verify().
+	 */
+	PKCS11_CMD_VERIFY_ONESHOT = 32,
+
+	/*
+	 * PKCS11_CMD_COPY_OBJECT - Duplicate an object possibly with new attributes
+	 *
+	 * [in]  memref[0] = [
+	 *              32bit session handle,
+	 *              32bit object handle,
+	 *              (struct pkcs11_object_head)attribs + attributes data,
+	 *	 ]
+	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
+	 * [out] memref[2] = 32bit object handle
+	 *
+	 * This command relates to the PKCS#11 API function C_CopyObject().
+	 */
+	PKCS11_CMD_COPY_OBJECT = 119,
 
 	/*
 	 * PKCS11_CMD_GET_SESSION_STATE - Retrieve the session state for later restore
@@ -364,21 +460,6 @@ enum pkcs11_ta_cmd {
 	 * This command relates to the PKCS#11 API function C_SetOperationState().
 	 */
 	PKCS11_CMD_SET_SESSION_STATE = 117,
-
-	/*
-	 * PKCS11_CMD_COPY_OBJECT - Duplicate an object possibly with new attributes
-	 *
-	 * [in]  memref[0] = [
-	 *              32bit session handle,
-	 *              32bit object handle,
-	 *              (struct pkcs11_object_head)attribs + attributes data,
-	 *	 ]
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [out] memref[2] = 32bit object handle
-	 *
-	 * This command relates to the PKCS#11 API function C_CopyObject().
-	 */
-	PKCS11_CMD_COPY_OBJECT = 119,
 
 	/*
 	 * PKCS11_CMD_FIND_OBJECTS_INIT - Initialize an object search
@@ -477,75 +558,6 @@ enum pkcs11_ta_cmd {
 	 * This command relates to the PKCS#11 API functions C_GenerateKey().
 	 */
 	PKCS11_CMD_GENERATE_KEY = 127,
-
-	/*
-	 * PKCS11_CMD_SIGN_INIT - Initialize a signature computation processing
-	 * PKCS11_CMD_VERIFY_INIT - Initialize a signature verification processing
-	 *
-	 * [in]  memref[0] = [
-	 *              32bit session handle,
-	 *              32bit key handle,
-	 *              (struct pkcs11_attribute_head)mechanism + mecha params,
-	 *	 ]
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 *
-	 * These commands relate to the PKCS#11 API functions C_SignInit() and
-	 * C_VerifyInit().
-	 */
-	PKCS11_CMD_SIGN_INIT = 136,
-	PKCS11_CMD_VERIFY_INIT = 137,
-
-	/*
-	 * PKCS11_CMD_SIGN_UPDATE - Update a signature computation processing
-	 * PKCS11_CMD_VERIFY_UPDATE - Update a signature verification processing
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [in]  memref[1] = input data to be processed
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 *
-	 * These commands relate to the PKCS#11 API functions C_SignUpdate() and
-	 * C_VerifyUpdate().
-	 */
-	PKCS11_CMD_SIGN_UPDATE = 138,
-	PKCS11_CMD_VERIFY_UPDATE = 139,
-
-	/*
-	 * PKCS11_CMD_SIGN_FINAL - Finalize a signature computation processing
-	 * PKCS11_CMD_VERIFY_FINAL - Finalize a signature verification processing
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [out] memref[2] = output processed data
-	 *
-	 * These commands relate to the PKCS#11 API functions C_SignFinal() and
-	 * C_VerifyFinal.
-	 */
-	PKCS11_CMD_SIGN_FINAL = 140,
-	PKCS11_CMD_VERIFY_FINAL = 141,
-
-	/*
-	 * PKCS11_CMD_SIGN_ONESHOT - Update and finalize a signature computation
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [in]  memref[1] = input data to be processed
-	 * [out] memref[2] = byte array: generated signature
-	 *
-	 * This command relates to the PKCS#11 API function C_Sign().
-	 */
-	PKCS11_CMD_SIGN_ONESHOT = 142,
-
-	/*
-	 * PKCS11_CMD_VERIFY_ONESHOT - Update and finalize a signature verification
-	 *
-	 * [in]  memref[0] = 32bit session handle
-	 * [out] memref[0] = 32bit return code, enum pkcs11_rc
-	 * [in]  memref[1] = input data to be processed
-	 * [in]  memref[2] = input signature to be processed
-	 *
-	 * This command relates to the PKCS#11 API function C_Verify().
-	 */
-	PKCS11_CMD_VERIFY_ONESHOT = 143,
 
 	/*
 	 * PKCS11_CMD_DERIVE_KEY - Derive a key from already provisioned parent key
@@ -1005,6 +1017,7 @@ enum pkcs11_key_type {
 /*
  * Valid values for mechanism IDs
  * PKCS11_CKM_<x> reflects CryptoKi client API mechanism IDs CKM_<x>.
+ * Note that this will be extended as needed.
  */
 enum pkcs11_mechanism_id {
 	PKCS11_CKM_RSA_PKCS_KEY_PAIR_GEN	= 0x00000,
