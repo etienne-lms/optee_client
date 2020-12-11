@@ -685,7 +685,7 @@ CK_RV ck_signverify_final(CK_SESSION_HANDLE session,
 	TEEC_SharedMemory *ctrl = NULL;
 	TEEC_SharedMemory *io = NULL;
 	uint32_t session_handle = session;
-	size_t out_size = 0;
+	size_t io_size = 0;
 
 	if ((sign_len && *sign_len && !sign_ref) || (sign && !sign_len))
 		return CKR_ARGUMENTS_BAD;
@@ -714,16 +714,14 @@ CK_RV ck_signverify_final(CK_SESSION_HANDLE session,
 		goto bail;
 	}
 
-	if (sign)
-		rv = ckteec_invoke_ctrl_out(PKCS11_CMD_SIGN_FINAL, ctrl, io,
-					    &out_size);
-	else
-		rv = ckteec_invoke_ctrl_in(PKCS11_CMD_VERIFY_FINAL, ctrl, io);
+	rv = ckteec_invoke_ta(sign ? PKCS11_CMD_SIGN_FINAL :
+			      PKCS11_CMD_VERIFY_FINAL, ctrl, NULL, io,
+			      &io_size, NULL, NULL);
 
 	if (sign && sign_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
-		*sign_len = out_size;
+		*sign_len = io_size;
 
-	if (rv == CKR_BUFFER_TOO_SMALL && out_size && !sign_ref)
+	if (rv == CKR_BUFFER_TOO_SMALL && io_size && !sign_ref)
 		rv = CKR_OK;
 
 bail:
