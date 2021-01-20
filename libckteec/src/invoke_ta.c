@@ -8,6 +8,7 @@
 #define BINARY_PREFIX		"ckteec"
 #endif
 
+#include <errno.h>
 #include <inttypes.h>
 #include <pkcs11.h>
 #include <pkcs11_ta.h>
@@ -39,7 +40,7 @@ bool ckteec_invoke_initiated(void)
 
 TEEC_SharedMemory *ckteec_alloc_shm(size_t size, enum ckteec_shm_dir dir)
 {
-	TEEC_SharedMemory *shm;
+	TEEC_SharedMemory *shm = NULL;
 
 	switch (dir) {
 	case CKTEEC_SHM_IN:
@@ -72,7 +73,7 @@ TEEC_SharedMemory *ckteec_alloc_shm(size_t size, enum ckteec_shm_dir dir)
 TEEC_SharedMemory *ckteec_register_shm(void *buffer, size_t size,
 				       enum ckteec_shm_dir dir)
 {
-	TEEC_SharedMemory *shm;
+	TEEC_SharedMemory *shm = NULL;
 
 	switch (dir) {
 	case CKTEEC_SHM_IN:
@@ -194,11 +195,11 @@ CK_RV ckteec_invoke_ta(unsigned long cmd, TEEC_SharedMemory *ctrl,
 
 static CK_RV ping_ta(void)
 {
-	TEEC_Operation op;
-	uint32_t origin;
-	TEEC_Result res;
-	uint32_t ta_version[3];
-	uint32_t status;
+	TEEC_Operation op = { 0 };
+	uint32_t origin = 0;
+	TEEC_Result res = TEEC_SUCCESS;
+	uint32_t ta_version[3] = { 0 };
+	uint32_t status = 0;
 
 	memset(&op, 0, sizeof(op));
 	op.params[0].tmpref.buffer = &status;
@@ -237,7 +238,47 @@ CK_RV ckteec_invoke_init(void)
 	uint32_t origin = 0;
 	TEEC_Result res = TEEC_SUCCESS;
 	CK_RV rv = CKR_CRYPTOKI_ALREADY_INITIALIZED;
-	int e;
+	const char *login_type_env = NULL;
+	const char *login_gid_env = NULL;
+	uint32_t login_method = TEEC_LOGIN_PUBLIC;
+	void *login_data = NULL;
+	gid_t login_gid = 0;
+	unsigned long tmpconv = 0;
+	char *endp = NULL;
+	int e = 0;
+
+	login_type_env = getenv("CKTEEC_LOGIN_TYPE");
+
+	if (login_type_env) {
+		if (strcmp(login_type_env, "public") == 0) {
+			login_method = TEEC_LOGIN_PUBLIC;
+		} else if (strcmp(login_type_env, "user") == 0) {
+			login_method = TEEC_LOGIN_USER;
+		} else if (strcmp(login_type_env, "group") == 0) {
+			login_gid_env = getenv("CKTEEC_LOGIN_GID");
+			if (!login_gid_env || !strlen(login_gid_env)) {
+				EMSG("missing CKTEEC_LOGIN_GID");
+				rv = CKR_ARGUMENTS_BAD;
+				goto out;
+			}
+
+			login_method = TEEC_LOGIN_GROUP;
+			tmpconv = strtoul(login_gid_env, &endp, 10);
+			if (errno == ERANGE || tmpconv > (gid_t)-1 ||
+			    (login_gid_env + strlen(login_gid_env) != endp)) {
+				EMSG("failed to convert CKTEEC_LOGIN_GID");
+				rv = CKR_ARGUMENTS_BAD;
+				goto out;
+			}
+
+			login_gid = (gid_t)tmpconv;
+			login_data = &login_gid;
+		} else {
+			EMSG("invalid value for CKTEEC_LOGIN_TYPE");
+			rv = CKR_ARGUMENTS_BAD;
+			goto out;
+		}
+	}
 
 	e = pthread_mutex_lock(&ta_ctx.init_mutex);
 	if (e) {
@@ -259,7 +300,7 @@ CK_RV ckteec_invoke_init(void)
 	}
 
 	res = TEEC_OpenSession(&ta_ctx.context, &ta_ctx.session, &uuid,
-			       TEEC_LOGIN_PUBLIC, NULL, NULL, &origin);
+			       login_method, login_data, NULL, &origin);
 	if (res != TEEC_SUCCESS) {
 		EMSG("TEEC open session failed %x from %d\n", res, origin);
 		TEEC_FinalizeContext(&ta_ctx.context);
@@ -290,7 +331,7 @@ out:
 CK_RV ckteec_invoke_terminate(void)
 {
 	CK_RV rv = CKR_CRYPTOKI_NOT_INITIALIZED;
-	int e;
+	int e = 0;
 
 	e = pthread_mutex_lock(&ta_ctx.init_mutex);
 	if (e) {

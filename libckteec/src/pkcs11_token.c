@@ -558,7 +558,10 @@ CK_RV ck_init_token(CK_SLOT_ID slot, CK_UTF8CHAR_PTR pin,
 	size_t ctrl_size = 0;
 	char *buf = NULL;
 
-	if (!pin || !label)
+	if (!pin && pin_len)
+		return CKR_ARGUMENTS_BAD;
+
+	if (!label)
 		return CKR_ARGUMENTS_BAD;
 
 	/* Shm io0: (in/out) ctrl = [slot-id][pin_len][label][pin] / [status] */
@@ -602,7 +605,7 @@ CK_RV ck_init_pin(CK_SESSION_HANDLE session,
 	size_t ctrl_size = 0;
 	char *buf = NULL;
 
-	if (!pin)
+	if (!pin && pin_len)
 		return CKR_ARGUMENTS_BAD;
 
 	/* Shm io0: (in/out) ctrl = [session][pin_len][pin] / [status] */
@@ -645,7 +648,7 @@ CK_RV ck_set_pin(CK_SESSION_HANDLE session,
 	size_t ctrl_size = 0;
 	char *buf;
 
-	if (!old || !new)
+	if ((!old && old_len) || (!new && new_len))
 		return CKR_ARGUMENTS_BAD;
 
 	/*
@@ -698,7 +701,7 @@ CK_RV ck_login(CK_SESSION_HANDLE session, CK_USER_TYPE user_type,
 	size_t ctrl_size = 0;
 	char *buf = NULL;
 
-	if (!pin)
+	if (!pin && pin_len)
 		return CKR_ARGUMENTS_BAD;
 
 	/* Shm io0: (i/o) ctrl = [session][user][pin length][pin] / [status] */

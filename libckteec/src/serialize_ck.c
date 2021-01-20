@@ -83,10 +83,9 @@ static CK_RV deserialize_indirect_attribute(struct pkcs11_attribute_head *obj,
 {
 	CK_ULONG count = 0;
 	CK_ATTRIBUTE_PTR attr = NULL;
-	CK_RV rv = CKR_GENERAL_ERROR;
 
 	switch (attribute->type) {
-	/* These are serialized each seperately */
+	/* These are serialized each separately */
 	case CKA_WRAP_TEMPLATE:
 	case CKA_UNWRAP_TEMPLATE:
 		count = attribute->ulValueLen / sizeof(CK_ATTRIBUTE);
@@ -96,12 +95,7 @@ static CK_RV deserialize_indirect_attribute(struct pkcs11_attribute_head *obj,
 		return CKR_GENERAL_ERROR;
 	}
 
-	/*
-	 * deserialize_ck_attributes expects pkcs11_attribute_head,
-	 * not pkcs11_object_head, so we need to correct the pointer
-	 */
-	rv = deserialize_ck_attributes(obj->data, attr, count);
-	return rv;
+	return deserialize_ck_attributes(obj->data, attr, count);
 }
 
 static int ck_attr_is_ulong(CK_ATTRIBUTE_TYPE attribute_id)
@@ -461,12 +455,11 @@ CK_RV deserialize_ck_attributes(uint8_t *in, CK_ATTRIBUTE_PTR attributes,
 #endif
 
 	for (n = count; n > 0; n--, cur_attr++, curr_head += len) {
-		struct pkcs11_attribute_head *cli_ref =
-			(struct pkcs11_attribute_head *)(void *)curr_head;
+		struct pkcs11_attribute_head *cli_ref = (void *)curr_head;
 
 		len = sizeof(*cli_ref);
 		/*
-		 * Can't trust size becuase it was set to reflect
+		 * Can't trust size because it was set to reflect
 		 * required buffer.
 		 */
 		if (cur_attr->pValue)
